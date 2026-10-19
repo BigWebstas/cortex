@@ -1,0 +1,41 @@
+<?xml version="1.0"?>
+<Container version="2">
+  <Name>cortex</Name>
+  <Repository>ghcr.io/dinglebear-ai/cortex:latest</Repository>
+  <Registry>https://github.com/dinglebear-ai/cortex/pkgs/container/cortex</Registry>
+  <Network>bridge</Network>
+  <MyIP/>
+  <Shell>sh</Shell>
+  <Privileged>false</Privileged>
+  <Support>https://github.com/dinglebear-ai/cortex/issues</Support>
+  <Project>https://github.com/dinglebear-ai/cortex</Project>
+  <ReadMe>https://github.com/dinglebear-ai/cortex/blob/main/unraid/README.md</ReadMe>
+  <Overview>Self-hosted homelab log intelligence. Cortex receives syslog (UDP/TCP 1514) and OTLP telemetry, stores it in SQLite with full-text search, and exposes it through MCP, REST, a CLI, and a browser investigation workspace.&#xD;
+&#xD;
+Set CORTEX_TOKEN (MCP/machine ingest) and CORTEX_API_TOKEN (REST) before first start; the web port is reachable on your LAN, so both are required. Point your Unraid syslog server (Settings &gt; Syslog) or other forwarders at port 1514.</Overview>
+  <Category>Tools: Status:Stable</Category>
+  <WebUI>http://[IP]:[PORT:3100]/</WebUI>
+  <TemplateURL>https://raw.githubusercontent.com/dinglebear-ai/cortex/main/unraid/cortex.xml</TemplateURL>
+  <Icon>https://raw.githubusercontent.com/dinglebear-ai/cortex/main/unraid/cortex-icon.png</Icon>
+  <ExtraParams>--user 99:100 --health-cmd="curl -sf http://localhost:3100/health || exit 1" --health-interval=30s</ExtraParams>
+  <PostArgs/>
+  <CPUset/>
+  <DateInstalled/>
+  <DonateText/>
+  <DonateLink/>
+  <Requires/>
+  <Config Name="Web UI / MCP / REST port" Target="3100" Default="3100" Mode="tcp" Description="HTTP port for the web workspace, /mcp, REST API, OTLP (/v1/logs, /v1/metrics, /v1/traces) and /health." Type="Port" Display="always" Required="true" Mask="false">3100</Config>
+  <Config Name="Syslog port (UDP)" Target="1514" Default="1514" Mode="udp" Description="Syslog receiver over UDP." Type="Port" Display="always" Required="true" Mask="false">1514</Config>
+  <Config Name="Syslog port (TCP)" Target="1514" Default="1514" Mode="tcp" Description="Syslog receiver over TCP." Type="Port" Display="always" Required="true" Mask="false">1514</Config>
+  <Config Name="Database" Target="/data" Default="/mnt/user/appdata/cortex/data" Mode="rw" Description="SQLite database (WAL mode). Keep on a cache/SSD share." Type="Path" Display="always" Required="true" Mask="false">/mnt/user/appdata/cortex/data</Config>
+  <Config Name="Cortex home" Target="/cortex-home" Default="/mnt/user/appdata/cortex/home" Mode="rw" Description="Cortex configuration and state." Type="Path" Display="always" Required="true" Mask="false">/mnt/user/appdata/cortex/home</Config>
+  <Config Name="Backups" Target="/backups" Default="/mnt/user/appdata/cortex/backups" Mode="rw" Description="Destination for `cortex db backup`." Type="Path" Display="advanced" Required="false" Mask="false">/mnt/user/appdata/cortex/backups</Config>
+  <Config Name="Log tail root" Target="/file-tail-root" Default="/var/log" Mode="ro" Description="Read-only root for managed file-tail ingest. Only paths under this mount can be tailed." Type="Path" Display="advanced" Required="false" Mask="false">/var/log</Config>
+  <Config Name="MCP / ingest token" Target="CORTEX_TOKEN" Default="" Mode="" Description="Bearer token for MCP and machine ingest. Required because the server binds beyond loopback. Generate with: openssl rand -hex 32" Type="Variable" Display="always" Required="true" Mask="true"/>
+  <Config Name="REST API token" Target="CORTEX_API_TOKEN" Default="" Mode="" Description="Token for the REST API. Required for the server to start. Use a value different from the MCP token." Type="Variable" Display="always" Required="true" Mask="true"/>
+  <Config Name="Admin API token" Target="CORTEX_API_ADMIN_TOKEN" Default="" Mode="" Description="Optional token for privileged REST operations." Type="Variable" Display="advanced" Required="false" Mask="true"/>
+  <Config Name="Bind host" Target="CORTEX_HOST" Default="0.0.0.0" Mode="" Description="Address the HTTP server binds inside the container. Leave at 0.0.0.0 so the Docker port mapping works." Type="Variable" Display="advanced" Required="true" Mask="false">0.0.0.0</Config>
+  <Config Name="Allowed hosts" Target="CORTEX_ALLOWED_HOSTS" Default="" Mode="" Description="Comma-separated Host header allow-list (add your Unraid hostname/IP with port, e.g. tower:3100) if requests are rejected." Type="Variable" Display="advanced" Required="false" Mask="false"/>
+  <Config Name="File tail allowed roots" Target="CORTEX_FILE_TAIL_ALLOWED_ROOTS" Default="/file-tail-root" Mode="" Description="Container paths file-tail ingest may read." Type="Variable" Display="advanced" Required="false" Mask="false">/file-tail-root</Config>
+  <Config Name="Home directory" Target="CORTEX_HOME" Default="/cortex-home" Mode="" Description="Fixed to the Cortex home mount." Type="Variable" Display="advanced" Required="true" Mask="false">/cortex-home</Config>
+</Container>
