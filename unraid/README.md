@@ -8,7 +8,7 @@ Save the template to the flash drive, then add the container from **Docker → A
 
 ```bash
 wget -O /boot/config/plugins/dockerMan/templates-user/my-cortex.xml \
-  https://raw.githubusercontent.com/dinglebear-ai/cortex/main/unraid/cortex.xml
+  https://raw.githubusercontent.com/BigWebstas/cortex/unraid/unraid/cortex.xml
 ```
 
 Set both tokens before first start (`openssl rand -hex 32`):

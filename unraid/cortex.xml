@@ -15,8 +15,8 @@
 Set CORTEX_TOKEN (MCP/machine ingest) and CORTEX_API_TOKEN (REST) before first start; the web port is reachable on your LAN, so both are required. Point your Unraid syslog server (Settings &gt; Syslog) or other forwarders at port 1514.</Overview>
   <Category>Tools: Status:Stable</Category>
   <WebUI>http://[IP]:[PORT:3100]/</WebUI>
-  <TemplateURL>https://raw.githubusercontent.com/dinglebear-ai/cortex/main/unraid/cortex.xml</TemplateURL>
-  <Icon>https://raw.githubusercontent.com/dinglebear-ai/cortex/main/unraid/cortex-icon.png</Icon>
+  <TemplateURL>https://raw.githubusercontent.com/BigWebstas/cortex/unraid/unraid/cortex.xml</TemplateURL>
+  <Icon>https://raw.githubusercontent.com/BigWebstas/cortex/unraid/unraid/cortex-icon.png</Icon>
   <ExtraParams>--user 99:100 --health-cmd="curl -sf http://localhost:3100/health || exit 1" --health-interval=30s</ExtraParams>
   <PostArgs/>
   <CPUset/>
