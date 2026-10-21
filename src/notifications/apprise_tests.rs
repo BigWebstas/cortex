@@ -9,22 +9,22 @@ fn escape_replaces_at_sign() {
 }
 
 #[test]
-fn escape_neutralizes_angle_brackets_without_dropping_content() {
-    // Markup is escaped (not executable) but the inner text is preserved,
-    // so HTML/markdown targets cannot be injected yet nothing is silently lost.
+fn escape_leaves_angle_brackets_for_apprise_to_escape() {
+    // The payload is sent as `format: text`, so Apprise escapes per target.
+    // Pre-escaping here double-escaped (Telegram showed `&lt;script&gt;`).
     assert_eq!(
         escape_for_notification("<script>alert(1)</script>"),
-        "&lt;script&gt;alert(1)&lt;/script&gt;"
+        "<script>alert(1)</script>"
     );
 }
 
 #[test]
 fn escape_preserves_normalizer_placeholders() {
-    // Regression: signatures emit <n>, <hex>, <path> etc. Stripping the
-    // brackets collapsed them into unreadable runs; escaping keeps them.
+    // Regression: signatures emit <n>, <hex>, <path> etc. They must reach the
+    // target as written, not as `&lt;n&gt;`.
     assert_eq!(
         escape_for_notification("<n>-<n>-<n>T<n>:<n>:<n> path=<path>"),
-        "&lt;n&gt;-&lt;n&gt;-&lt;n&gt;T&lt;n&gt;:&lt;n&gt;:&lt;n&gt; path=&lt;path&gt;"
+        "<n>-<n>-<n>T<n>:<n>:<n> path=<path>"
     );
 }
 
@@ -32,13 +32,13 @@ fn escape_preserves_normalizer_placeholders() {
 fn escape_combined() {
     assert_eq!(
         escape_for_notification("Out of memory: Killed process 1234 (nginx) <@root>"),
-        "Out of memory: Killed process 1234 (nginx) &lt;＠root&gt;"
+        "Out of memory: Killed process 1234 (nginx) <＠root>"
     );
 }
 
 #[test]
-fn escape_ampersand() {
-    assert_eq!(escape_for_notification("a & b"), "a &amp; b");
+fn escape_ampersand_is_not_double_escaped() {
+    assert_eq!(escape_for_notification("a & b"), "a & b");
 }
 
 #[test]

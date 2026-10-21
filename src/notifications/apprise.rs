@@ -106,7 +106,7 @@ impl AppriseClient {
             "title": safe_title,
             "body": safe_body,
             "type": notify_type.as_str(),
-            "format": "markdown",
+            "format": "text",
         });
 
         let request = self
@@ -156,30 +156,17 @@ impl AppriseClient {
     }
 }
 
-/// Escape log-derived text for safe notification delivery.
+/// Prepare log-derived text for notification delivery.
 ///
-/// The payload is sent with `"format": "markdown"`, so raw `<`/`>` would be
-/// interpreted as HTML tags by markdown-rendering targets (Gotify, etc.) and
-/// silently dropped. The error-signature normalizer emits placeholder tokens
-/// like `<n>`, `<hex>`, `<ip>`, `<path>`, so stripping the brackets mangled
-/// every signature into unreadable runs (`<n>:<n>:<n>` → `n:n:n`). Instead we
-/// HTML-escape the markup characters: this both renders the placeholders
-/// literally and still neutralises tag/markup injection.
+/// The payload is sent with `"format": "text"`, so Apprise escapes the body for
+/// each target itself (HTML for Telegram, plain for Gotify). Pre-escaping here
+/// double-escaped: Telegram showed the literal text `&lt;n&gt;` instead of the
+/// `<n>`, `<hex>`, `<ip>`, `<path>` placeholders the error-signature normalizer
+/// emits. `&`, `<` and `>` are therefore passed through untouched.
 ///
 /// - Replaces `@` with `＠` (U+FF20) to prevent mention injection.
-/// - Escapes `&`, `<`, `>` to their HTML entities so they render verbatim.
 pub fn escape_for_notification(s: &str) -> String {
-    let mut out = String::with_capacity(s.len());
-    for c in s.chars() {
-        match c {
-            '@' => out.push('＠'),
-            '&' => out.push_str("&amp;"),
-            '<' => out.push_str("&lt;"),
-            '>' => out.push_str("&gt;"),
-            other => out.push(other),
-        }
-    }
-    out
+    s.replace('@', "＠")
 }
 
 #[cfg(test)]
