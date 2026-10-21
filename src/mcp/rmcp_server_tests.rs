@@ -1312,6 +1312,8 @@ async fn mounted_policy_with_auth_context_permits_tools_list() {
         tools[0]["name"], "cortex",
         "tools/list should return cortex tool; response: {response}"
     );
+    assert_eq!(response["result"]["ttlMs"], 60_000, "{response}");
+    assert_eq!(response["result"]["cacheScope"], "private", "{response}");
 }
 
 #[tokio::test]
