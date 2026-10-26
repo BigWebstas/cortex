@@ -257,7 +257,21 @@ fn docker_event_message(action: &str, meta: &ContainerMeta, actor: &EventActor) 
 }
 
 pub(crate) fn infer_docker_severity(message: &str) -> Option<&'static str> {
-    infer_json_severity(message).or_else(|| infer_text_severity(&strip_ansi(message)))
+    infer_json_severity(message)
+        .or_else(|| infer_text_severity(&strip_ansi(message)))
+        .or_else(|| infer_llama_cpp_severity(message))
+}
+
+// llama.cpp servers (including Ollama's runner) write routine progress lines
+// to stderr with no level word. Real failures carry "error"/"fatal" and are
+// classified before this runs, so only the level-less status lines land here.
+fn infer_llama_cpp_severity(message: &str) -> Option<&'static str> {
+    let is_status_line = message.starts_with("srv ")
+        || message.starts_with("slot ")
+        || message.starts_with("decoding image batch")
+        || message.starts_with("image decoded")
+        || (message.starts_with('\t') && message.contains(" = "));
+    is_status_line.then_some("info")
 }
 
 fn infer_json_severity(message: &str) -> Option<&'static str> {
