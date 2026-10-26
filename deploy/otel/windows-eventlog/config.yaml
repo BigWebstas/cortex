@@ -1,0 +1,79 @@
+extensions:
+  file_storage:
+    directory: C:\ProgramData\otelcol\storage
+    create_directory: true
+
+receivers:
+  windowseventlog/system:
+    channel: system
+    start_at: end
+    storage: file_storage
+  windowseventlog/application:
+    channel: application
+    start_at: end
+    storage: file_storage
+  # Security is high volume. Keep this query narrow; extend the EventID list
+  # deliberately (4625 failed logon, 4740 account lockout).
+  windowseventlog/security:
+    start_at: end
+    storage: file_storage
+    query: |
+      <QueryList>
+        <Query Id="0" Path="Security">
+          <Select Path="Security">*[System[(EventID=4625 or EventID=4740)]]</Select>
+        </Query>
+      </QueryList>
+
+processors:
+  memory_limiter:
+    check_interval: 5s
+    limit_mib: 192
+    spike_limit_mib: 64
+  resource:
+    attributes:
+      - key: service.name
+        value: windows-eventlog
+        action: upsert
+      - key: service.namespace
+        value: homelab
+        action: upsert
+      - key: host.name
+        value: ${env:CORTEX_OTLP_HOST_NAME}
+        action: upsert
+  # Cortex stores a map body as "[kvlist len=N]", so flatten the parsed event
+  # into a one-line string and keep the useful fields as attributes.
+  transform/body:
+    error_mode: ignore
+    log_statements:
+      - context: log
+        statements:
+          - set(attributes["windows.channel"], body["channel"])
+          - set(attributes["windows.event_id"], body["event_id"]["id"])
+          - set(attributes["windows.provider"], body["provider"]["name"])
+          - 'set(body, Format("[%v] %v: %v", [body["event_id"]["id"], body["provider"]["name"], body["message"]]))'
+  batch:
+    timeout: 10s
+    send_batch_size: 256
+
+exporters:
+  otlp_http/cortex:
+    endpoint: ${env:CORTEX_OTLP_ENDPOINT}
+    compression: none
+    headers:
+      Authorization: ${env:CORTEX_OTLP_AUTH_HEADER}
+    retry_on_failure:
+      enabled: true
+      initial_interval: 5s
+      max_interval: 30s
+      max_elapsed_time: 5m
+
+service:
+  extensions: [file_storage]
+  pipelines:
+    logs:
+      receivers:
+        - windowseventlog/system
+        - windowseventlog/application
+        - windowseventlog/security
+      processors: [memory_limiter, resource, transform/body, batch]
+      exporters: [otlp_http/cortex]
