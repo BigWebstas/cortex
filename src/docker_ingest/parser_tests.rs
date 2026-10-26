@@ -295,6 +295,28 @@ fn event(action: &str) -> EventMessage {
 }
 
 #[test]
+fn stderr_frame_treats_llama_cpp_status_lines_as_info() {
+    for line in [
+        "srv        update:    - prompt 0x9212ee0:     893 tokens, checkpoints:  0,   167.448 MiB",
+        "slot launch_slot_: id  0 | task 40225 | processing task, is_child = 0",
+        "decoding image batch 2/2, n_tokens_batch = 217",
+        "image decoded (batch 2/2) in 1563 ms",
+        "\ttop_k = 40, top_p = 0.900, min_p = 0.000",
+    ] {
+        assert_eq!(infer_docker_severity(line), Some("info"), "{line}");
+    }
+}
+
+#[test]
+fn llama_cpp_error_lines_keep_their_error_level() {
+    assert_eq!(
+        infer_docker_severity("srv    send_error: task id = 0, error: out of memory"),
+        Some("err")
+    );
+    assert_eq!(infer_docker_severity("ggml_cuda_init: failed to initialize CUDA"), None);
+}
+
+#[test]
 fn ordinary_log_word_is_not_a_postgres_severity_marker() {
     assert_eq!(infer_docker_severity("cannot open log file"), None);
     assert_eq!(
