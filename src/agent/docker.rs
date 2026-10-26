@@ -18,7 +18,7 @@ use super::syslog_sender::{
 };
 use crate::docker_ingest::{
     docker_event_severity, docker_event_source_action, docker_event_timestamp,
-    infer_docker_severity,
+    infer_docker_severity, redact_url_credentials,
 };
 
 const CONTAINER_POLL_SECS: u64 = 30;
@@ -250,11 +250,11 @@ async fn follow_container(
         };
 
         let raw = String::from_utf8_lossy(&bytes);
-        let msg = raw.trim_end_matches(['\r', '\n']);
+        let msg = redact_url_credentials(raw.trim_end_matches(['\r', '\n']));
         if msg.is_empty() {
             continue;
         }
-        let pri = docker_log_pri(is_stderr, msg);
+        let pri = docker_log_pri(is_stderr, &msg);
         let prefix = if is_stderr {
             &stderr_prefix
         } else {

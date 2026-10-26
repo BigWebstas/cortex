@@ -1,7 +1,11 @@
+use std::borrow::Cow;
+use std::sync::LazyLock;
+
 use anyhow::Result;
 use bollard::container::LogOutput;
 use bollard::models::{EventActor, EventMessage};
 use chrono::TimeZone;
+use regex::Regex;
 
 use crate::db;
 use crate::enrich::{SourceKind, stamp_source_kind};
@@ -20,9 +24,10 @@ pub(super) fn log_output_to_entry(
         _ => return Ok(None),
     };
 
-    let raw_line = String::from_utf8_lossy(&bytes)
-        .trim_end_matches(['\r', '\n'])
-        .to_string();
+    let raw_line = redact_url_credentials(
+        String::from_utf8_lossy(&bytes).trim_end_matches(['\r', '\n']),
+    )
+    .into_owned();
     if raw_line.is_empty() {
         return Ok(None);
     }
@@ -254,6 +259,16 @@ fn docker_event_message(action: &str, meta: &ContainerMeta, actor: &EventActor) 
         parts.push(format!("exit_code={exit_code}"));
     }
     parts.join(" ")
+}
+
+/// Containers such as go2rtc log full `scheme://user:password@host` URLs, so
+/// the credential is replaced before the line is stored or forwarded.
+pub(crate) fn redact_url_credentials(message: &str) -> Cow<'_, str> {
+    static URL_CREDENTIALS: LazyLock<Regex> = LazyLock::new(|| {
+        Regex::new(r"(?i)\b([a-z][a-z0-9+.-]*://)[^\s/:@]+:[^\s/@]+@")
+            .expect("static URL credentials pattern")
+    });
+    URL_CREDENTIALS.replace_all(message, "${1}[REDACTED]@")
 }
 
 pub(crate) fn infer_docker_severity(message: &str) -> Option<&'static str> {

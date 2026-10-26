@@ -317,6 +317,37 @@ fn llama_cpp_error_lines_keep_their_error_level() {
 }
 
 #[test]
+fn url_credentials_are_redacted_from_message_and_raw() {
+    let entry = log_output_to_entry(
+        "edge-host-a",
+        &meta(),
+        LogOutput::StdOut {
+            message: Bytes::from_static(
+                b"2026-05-05T01:02:03Z WRN error=\"i/o timeout\" url=rtsp://admin:hunter2@192.168.3.23:554/onvif1#hardware\n",
+            ),
+        },
+    )
+    .unwrap()
+    .unwrap();
+
+    let expected = "url=rtsp://[REDACTED]@192.168.3.23:554/onvif1#hardware";
+    assert!(entry.message.contains(expected), "{}", entry.message);
+    assert!(entry.raw.contains(expected), "{}", entry.raw);
+    assert!(!entry.message.contains("hunter2") && !entry.raw.contains("hunter2"));
+}
+
+#[test]
+fn urls_without_credentials_are_left_alone() {
+    for line in [
+        "GET http://192.168.1.59:8123/api/states 200",
+        "dial tcp example.com:8080/path@x failed",
+        "git@github.com:org/repo.git",
+    ] {
+        assert_eq!(redact_url_credentials(line), line);
+    }
+}
+
+#[test]
 fn ordinary_log_word_is_not_a_postgres_severity_marker() {
     assert_eq!(infer_docker_severity("cannot open log file"), None);
     assert_eq!(
