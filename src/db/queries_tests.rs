@@ -138,6 +138,91 @@ fn tail_logs_severity_only_uses_per_severity_index_probes() {
 }
 
 #[test]
+fn tail_logs_host_plus_severity_probes_severity_host_index_per_level() {
+    // `tail host=X severity_min=error` used to walk idx_logs_host_time and
+    // filter on severity, visiting every row of a large host that had few or
+    // no errors. Each severity must instead probe idx_logs_sev_host_time.
+    let (pool, _dir) = test_pool();
+    insert_logs_batch(
+        &pool,
+        &[
+            make_entry("2026-01-01T00:00:01Z", "host-a", "err", "old error"),
+            make_entry("2026-01-01T00:00:02Z", "host-a", "info", "chatter 1"),
+            make_entry("2026-01-01T00:00:03Z", "host-a", "crit", "newer critical"),
+            make_entry("2026-01-01T00:00:04Z", "host-a", "info", "chatter 2"),
+            make_entry("2026-01-01T00:00:05Z", "host-b", "err", "other host error"),
+        ],
+    )
+    .unwrap();
+
+    let levels = vec![
+        "err".to_string(),
+        "crit".to_string(),
+        "alert".to_string(),
+        "emerg".to_string(),
+    ];
+    let params = SearchParams {
+        host: Some("host-a".to_string()),
+        severity_in: Some(levels.clone()),
+        ..Default::default()
+    };
+    let (sql, bindings) =
+        crate::db::queries::attributed_hosts::query_sql(&params, "host-a", 10, false);
+    assert_eq!(
+        sql.matches("INDEXED BY idx_logs_sev_host_time").count(),
+        levels.len(),
+        "one bounded probe per severity, got:\n{sql}"
+    );
+    assert!(sql.contains("UNION ALL"));
+    let plan = query_plan(&pool, &sql, &bindings);
+    assert!(
+        plan.contains("idx_logs_sev_host_time"),
+        "each arm must probe (severity, hostname, timestamp); got:\n{plan}"
+    );
+    assert!(
+        !plan.contains("idx_logs_host_time"),
+        "must not walk the host index and filter severity; got:\n{plan}"
+    );
+
+    // Behavior matches the generic `severity IN (...)` read: newest first,
+    // only this host, no info rows, and the LIMIT applies after the merge.
+    let rows = tail_logs(&pool, Some("host-a"), None, None, Some(&levels), 10).unwrap();
+    let messages: Vec<&str> = rows.iter().map(|row| row.message.as_str()).collect();
+    assert_eq!(messages, ["newer critical", "old error"]);
+    let rows = tail_logs(&pool, Some("host-a"), None, None, Some(&levels), 1).unwrap();
+    assert_eq!(rows.len(), 1);
+    assert_eq!(rows[0].message, "newer critical");
+
+    // Duplicate levels do not duplicate rows, and other filters still apply.
+    let dup = vec!["err".to_string(), "err".to_string()];
+    let rows = tail_logs(&pool, Some("host-a"), None, None, Some(&dup), 10).unwrap();
+    assert_eq!(rows.len(), 1);
+    let rows = tail_logs(
+        &pool,
+        Some("host-a"),
+        None,
+        Some("no-such-app"),
+        Some(&levels),
+        10,
+    )
+    .unwrap();
+    assert!(rows.is_empty());
+
+    // A single-severity filter keeps the generic plan, and so does the
+    // forwarded-attribution branch.
+    let single = SearchParams {
+        host: Some("host-a".to_string()),
+        severity: Some("err".to_string()),
+        severity_in: Some(levels),
+        ..Default::default()
+    };
+    let (sql, _) = crate::db::queries::attributed_hosts::query_sql(&single, "host-a", 10, false);
+    assert!(!sql.contains("UNION ALL"));
+    let (sql, _) = crate::db::queries::attributed_hosts::query_sql(&params, "host-a", 10, true);
+    assert!(!sql.contains("UNION ALL"));
+}
+
+#[test]
 fn tail_logs_limit_is_bound_and_clamped() {
     let levels = vec!["err".to_string(), "warning".to_string()];
     let (sql, bindings) = tail_logs_sql(
