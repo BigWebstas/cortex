@@ -36,12 +36,66 @@ pub(super) fn search(
     Ok(rows)
 }
 
+/// A host plus severity-set read (e.g. `tail host=X severity_min=error`) cannot
+/// walk `idx_logs_host_time` newest-first and filter on severity: when the host
+/// has few or no rows at that severity the walk visits every row the host ever
+/// wrote (a 513k-row host took 26-85 s to return nothing). Probe
+/// `idx_logs_sev_host_time` once per severity instead, each arm bounded by its
+/// own LIMIT, then merge. Only used for the direct (non-attributed) branch
+/// with no FTS query and no single-severity filter, so the arms stay
+/// equivalent to the generic `severity IN (...)` query.
+fn severity_split_applies(params: &SearchParams, attributed: bool) -> bool {
+    !attributed
+        && params.query.is_none()
+        && params.severity.is_none()
+        && params
+            .severity_in
+            .as_ref()
+            .is_some_and(|levels| !levels.is_empty())
+}
+
+fn severity_split_sql(
+    params: &SearchParams,
+    hostname: &str,
+    limit: u32,
+) -> (String, Vec<rusqlite::types::Value>) {
+    let mut bindings = vec![rusqlite::types::Value::Text(hostname.to_string())];
+    let mut idx = 2;
+    let mut seen = std::collections::HashSet::new();
+    let mut arms = Vec::new();
+    for level in params.severity_in.as_deref().unwrap_or_default() {
+        if !seen.insert(level.as_str()) {
+            continue;
+        }
+        let mut filters = params.clone();
+        filters.host = None;
+        filters.severity = Some(level.clone());
+        filters.severity_in = None;
+        let mut arm = format!(
+            "SELECT * FROM (SELECT {FTS_SELECT_COLS} FROM logs l \
+             INDEXED BY idx_logs_sev_host_time WHERE l.hostname=?1"
+        );
+        append_filters(&mut arm, &mut bindings, &mut idx, &filters);
+        arm.push_str(" ORDER BY l.timestamp DESC,l.id DESC");
+        push_bound_limit(&mut arm, &mut bindings, &mut idx, "LIMIT", limit);
+        arm.push(')');
+        arms.push(arm);
+    }
+    let mut sql = arms.join(" UNION ALL ");
+    sql.push_str(" ORDER BY timestamp DESC,id DESC");
+    push_bound_limit(&mut sql, &mut bindings, &mut idx, "LIMIT", limit);
+    (sql, bindings)
+}
+
 pub(super) fn query_sql(
     params: &SearchParams,
     hostname: &str,
     limit: u32,
     attributed: bool,
 ) -> (String, Vec<rusqlite::types::Value>) {
+    if severity_split_applies(params, attributed) {
+        return severity_split_sql(params, hostname, limit);
+    }
     let mut sql = if attributed {
         let guard = super::super::host_attribution::projected_host_guard("a.hostname");
         format!(
