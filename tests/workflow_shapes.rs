@@ -22,6 +22,7 @@ fn ci_uses_changed_path_classifier_and_stable_gate() {
         "deny",
         "mcp-integration",
         "deployment-contract",
+        "web-workspace",
     ] {
         let block = workflow_job_block(workflow, job);
         assert!(
@@ -61,6 +62,7 @@ fn ci_uses_changed_path_classifier_and_stable_gate() {
         "deny",
         "mcp-integration",
         "deployment-contract",
+        "web-workspace",
     ] {
         assert!(
             gate.contains(&format!("require_success_or_skipped {job}")),

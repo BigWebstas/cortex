@@ -223,6 +223,69 @@ jobs:
           bash tests/live/lib/aggregate-selftest.sh
           bash tests/live/selftest/harness-guard.sh
 
+  web-workspace:
+    name: Web workspace
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    needs: [changes]
+    # The browser tests run against the production Rust router, so Rust changes
+    # can break them too.
+    if: ${{ needs.changes.outputs.web == 'true' || needs.changes.outputs.rust == 'true' }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+
+      - name: Install web dependencies
+        run: |
+          corepack enable
+          pnpm --dir web install --frozen-lockfile
+
+      - name: Audit vendored Aurora source
+        run: node web/scripts/audit-aurora.mjs
+
+      - name: Lint, typecheck, test and build
+        run: |
+          pnpm --dir web lint
+          pnpm --dir web typecheck
+          pnpm --dir web test
+          pnpm --dir web build
+
+      - name: Install Rust and kache
+        uses: ./.github/actions/setup-rust-kache
+
+      # Compiled ahead of the browser run so the Playwright server start-up
+      # timeout does not include a cold build. The environment matches the
+      # webServer command in web/playwright.config.ts.
+      - name: Test the embedded bundle
+        env:
+          CARGO_PROFILE_DEV_DEBUG: "0"
+          CARGO_PROFILE_TEST_DEBUG: "0"
+          CARGO_BUILD_JOBS: "4"
+          CORTEX_REQUIRE_WEB_BUNDLE: "1"
+        run: |
+          env -u CORTEX_API_TOKEN -u NO_AUTH cargo test --lib --locked web_app::
+
+      - name: Install browser
+        run: pnpm --dir web exec playwright install --with-deps chromium
+
+      - name: Run browser tests
+        env:
+          CARGO_PROFILE_DEV_DEBUG: "0"
+          CARGO_PROFILE_TEST_DEBUG: "0"
+          CARGO_BUILD_JOBS: "4"
+        run: pnpm --dir web test:e2e
+
+      - name: Upload browser traces
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: web-browser-results
+          path: web/test-results
+          if-no-files-found: ignore
+
   session-query-benchmark:
     name: Session query benchmark
     runs-on: ubuntu-24.04
@@ -483,6 +546,7 @@ jobs:
       - npm
       - session-query-benchmark
       - native-heartbeat
+      - web-workspace
     steps:
       - name: Verify required jobs passed or were intentionally skipped
         run: |
@@ -509,6 +573,7 @@ jobs:
           require_success_or_skipped deployment-contract "${{ needs.deployment-contract.result }}"
           require_success_or_skipped npm "${{ needs.npm.result }}"
           require_success_or_skipped native-heartbeat "${{ needs.native-heartbeat.result }}"
+          require_success_or_skipped web-workspace "${{ needs.web-workspace.result }}"
           require_success_or_skipped session-query-benchmark "${{ needs.session-query-benchmark.result }}"
 
   npm:
