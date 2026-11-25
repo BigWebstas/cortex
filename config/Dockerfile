@@ -1,5 +1,16 @@
 # syntax=docker/dockerfile:1.7
 
+FROM node:22-slim AS web-builder
+
+WORKDIR /app
+RUN corepack enable
+COPY web/package.json web/pnpm-lock.yaml web/
+RUN --mount=type=cache,id=cortex-pnpm-store-v1,target=/root/.local/share/pnpm/store \
+    cd web && pnpm install --frozen-lockfile
+COPY docs/contracts/agent-observatory-types.ts docs/contracts/agent-observatory-types.ts
+COPY web/ web/
+RUN cd web && pnpm build
+
 FROM rust:1.97.1-slim-bookworm AS builder
 
 WORKDIR /app
@@ -23,9 +34,11 @@ RUN --mount=type=cache,id=cortex-cargo-registry-v2,target=/usr/local/cargo/regis
     if [ "$CORTEX_BUILD_PROFILE" = "release" ]; then cargo build -p cortex --bin cortex --release --locked; else cargo build -p cortex --bin cortex --locked; fi && \
     rm -rf src
 
-# Build real binary
+# Build real binary with the static Next.js investigation workspace embedded
+COPY build.rs ./
 COPY src/ src/
 COPY web/ web/
+COPY --from=web-builder /app/web/out web/out
 COPY docker-compose.yml docker-compose.prod.yml ./
 COPY config/Dockerfile config/Dockerfile
 COPY scripts/backup.sh scripts/backup.sh
@@ -35,9 +48,9 @@ RUN --mount=type=cache,id=cortex-cargo-registry-v2,target=/usr/local/cargo/regis
     case "$CORTEX_BUILD_PROFILE" in release|debug) ;; *) echo "invalid CORTEX_BUILD_PROFILE=$CORTEX_BUILD_PROFILE"; exit 1; esac && \
     touch src/main.rs && \
     if [ "$CORTEX_BUILD_PROFILE" = "release" ]; then \
-      cargo build -p cortex --bin cortex --release --locked && cp target/release/cortex /usr/local/bin/cortex; \
+      CORTEX_REQUIRE_WEB_BUNDLE=1 cargo build -p cortex --bin cortex --release --locked && cp target/release/cortex /usr/local/bin/cortex; \
     else \
-      cargo build -p cortex --bin cortex --locked && cp target/debug/cortex /usr/local/bin/cortex; \
+      CORTEX_REQUIRE_WEB_BUNDLE=1 cargo build -p cortex --bin cortex --locked && cp target/debug/cortex /usr/local/bin/cortex; \
     fi
 
 # Runtime

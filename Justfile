@@ -23,6 +23,16 @@ check:
     cargo check
     bash scripts/check-rust-module-size.sh --limit 500
 
+web-build:
+    pnpm --dir web build
+
+web-check:
+    pnpm --dir web lint
+    pnpm --dir web typecheck
+    pnpm --dir web test
+    pnpm --dir web build
+    CORTEX_REQUIRE_WEB_BUNDLE=1 env -u CORTEX_API_TOKEN -u NO_AUTH cargo test web_app --lib --locked
+
 # AO-001: parse/compile/validate the Agent Observatory planning contracts
 # (JSON, SQL, Rust, TypeScript) and fail on unresolved placeholders.
 check-agent-observatory-contracts:

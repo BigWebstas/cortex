@@ -1,11 +1,14 @@
 import type { Metadata } from "next"
 
+import { InvestigationWorkspace } from "../../src/components/investigate/investigation-workspace"
+import { WorkspaceShell } from "../../src/components/workspace-shell"
+
 export const metadata: Metadata = { title: "Investigate" }
 
 export default function InvestigatePage() {
   return (
-    <main>
-      <h1>Investigate</h1>
-    </main>
+    <WorkspaceShell activeRoute="investigate">
+      <InvestigationWorkspace />
+    </WorkspaceShell>
   )
 }

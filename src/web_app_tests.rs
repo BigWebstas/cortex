@@ -4,35 +4,35 @@ use tower::util::ServiceExt;
 
 use super::*;
 
-async fn get(path: &str) -> axum::response::Response {
+async fn send(method: &str, path: &str, if_none_match: Option<&str>) -> axum::response::Response {
+    let mut builder = Request::builder().method(method).uri(path);
+    if let Some(etag) = if_none_match {
+        builder = builder.header(header::IF_NONE_MATCH, etag);
+    }
     router()
-        .oneshot(
-            Request::builder()
-                .method("GET")
-                .uri(path)
-                .body(axum::body::Body::empty())
-                .unwrap(),
-        )
+        .oneshot(builder.body(axum::body::Body::empty()).unwrap())
         .await
         .unwrap()
 }
 
+async fn get(path: &str) -> axum::response::Response {
+    send("GET", path, None).await
+}
+
 #[tokio::test]
-async fn app_route_serves_workspace_shell_with_no_store_and_csp() {
+async fn app_route_serves_workspace_shell_with_no_store_and_strict_csp() {
     let response = get("/app/investigate").await;
     assert_eq!(response.status(), StatusCode::OK);
     assert_eq!(
         response.headers().get(header::CACHE_CONTROL).unwrap(),
         "no-store"
     );
-    assert!(
+    assert_eq!(
         response
             .headers()
-            .get(header::CONTENT_SECURITY_POLICY)
-            .unwrap()
-            .to_str()
-            .unwrap()
-            .contains("script-src 'self'")
+            .get(header::X_CONTENT_TYPE_OPTIONS)
+            .unwrap(),
+        "nosniff"
     );
     let csp = response
         .headers()
@@ -40,12 +40,15 @@ async fn app_route_serves_workspace_shell_with_no_store_and_csp() {
         .unwrap()
         .to_str()
         .unwrap();
+    assert!(csp.contains("script-src 'self'"), "unexpected csp: {csp}");
     assert!(csp.contains("style-src 'self' 'unsafe-inline'"));
-    assert!(!csp.contains("script-src 'self' 'unsafe-inline'"));
+    assert!(
+        !csp.contains("script-src 'self' 'unsafe-inline'") && !csp.contains("unsafe-eval"),
+        "script-src must never allow unsafe-inline or unsafe-eval: {csp}"
+    );
     let body = to_bytes(response.into_body(), usize::MAX).await.unwrap();
     let html = String::from_utf8(body.to_vec()).unwrap();
     assert!(html.contains("Cortex investigation workspace"));
-    assert!(html.contains("/app/assets/cytoscape-3.34.0.min.js"));
     assert!(!html.contains("CORTEX_API_TOKEN="));
     assert!(html.contains("data-clear-token"));
 }
@@ -62,15 +65,71 @@ async fn app_spa_fallback_is_scoped_under_app_only() {
 }
 
 #[tokio::test]
-async fn app_assets_have_expected_cache_policy() {
-    let response = get("/app/assets/app.js").await;
+async fn app_rejects_traversal_and_missing_static_assets() {
+    for path in [
+        "/app/assets/../index.html",
+        "/app/assets/%2e%2e/index.html",
+        "/app/_next/static/does-not-exist.js",
+        "/app/assets/missing.js",
+        "/app/bundle.js.map",
+    ] {
+        let response = get(path).await;
+        assert_eq!(response.status(), StatusCode::NOT_FOUND, "{path}");
+    }
+}
+
+#[tokio::test]
+async fn app_assets_have_expected_cache_policy_and_head_support() {
+    let response = get("/app/assets/cytoscape-3.34.0.min.js").await;
     assert_eq!(response.status(), StatusCode::OK);
     assert_eq!(
         response.headers().get(header::CACHE_CONTROL).unwrap(),
-        "no-store"
+        "public, max-age=31536000, immutable"
     );
 
-    let response = get("/app/assets/cytoscape-3.34.0.min.js").await;
+    let head = send("HEAD", "/app/assets/cytoscape-3.34.0.min.js", None).await;
+    assert_eq!(head.status(), StatusCode::OK);
+    let head_body = to_bytes(head.into_body(), usize::MAX).await.unwrap();
+    assert!(head_body.is_empty());
+}
+
+#[tokio::test]
+async fn embedded_next_bundle_routes_and_conditional_etag_work() {
+    if !EMBEDDED_WEB_BUNDLE {
+        return;
+    }
+
+    for route in [
+        "/app",
+        "/app/",
+        "/app/investigate",
+        "/app/investigate/",
+        "/app/agents",
+        "/app/agents/",
+    ] {
+        let response = get(route).await;
+        assert_eq!(response.status(), StatusCode::OK, "{route}");
+        assert_eq!(
+            response.headers().get(header::CACHE_CONTROL).unwrap(),
+            "no-store",
+            "{route}"
+        );
+        let etag = response
+            .headers()
+            .get(header::ETAG)
+            .expect("embedded route must include ETag")
+            .to_str()
+            .unwrap()
+            .to_string();
+        let not_modified = send("GET", route, Some(&etag)).await;
+        assert_eq!(not_modified.status(), StatusCode::NOT_MODIFIED, "{route}");
+    }
+
+    let static_chunk = EMBEDDED_ASSETS
+        .iter()
+        .find(|asset| asset.request_path.starts_with("/app/_next/static/"))
+        .expect("Next.js static export must embed /app/_next/static/ assets");
+    let response = get(static_chunk.request_path).await;
     assert_eq!(response.status(), StatusCode::OK);
     assert_eq!(
         response.headers().get(header::CACHE_CONTROL).unwrap(),
@@ -79,79 +138,68 @@ async fn app_assets_have_expected_cache_policy() {
 }
 
 #[tokio::test]
-async fn app_script_uses_text_nodes_for_dynamic_content() {
-    assert!(!APP_JS.contains("innerHTML"));
-    assert!(APP_JS.contains("textContent"));
-    assert!(APP_JS.contains("document.createElement"));
-    assert!(APP_JS.contains("/api/v1/investigations/ask"));
-    assert!(!APP_JS.contains("/api/ai/ask-history"));
-}
-
-#[tokio::test]
-async fn app_rendering_contract_covers_xss_fixtures() {
-    let fixtures = [
-        ("service name", r#"<script>alert("service")</script>"#),
-        ("graph label", r#"<img src=x onerror=alert("graph")>"#),
-        ("tooltip", r#"" onmouseover="alert('tip')" data-x=""#),
-        ("log excerpt", r#"<svg><script>alert("log")</script></svg>"#),
-        ("html entities", "&lt;script&gt;alert(1)&lt;/script&gt;"),
-        ("svg payload", r#"<svg/onload=alert("svg")>"#),
-        ("ansi escapes", "\u{1b}[31mred\u{1b}[0m <b>bold</b>"),
+async fn next_workspace_sources_avoid_unsafe_html_sinks_and_token_storage() {
+    let sources = [
         (
-            "bearer-looking string",
-            "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.payload.signature",
+            "investigation-api.ts",
+            include_str!("../web/src/lib/investigation-api.ts"),
         ),
         (
-            "cookie text",
-            "Cookie: session=abc123; CORTEX_API_TOKEN=secret",
+            "host-sources.ts",
+            include_str!("../web/src/lib/host-sources.ts"),
         ),
         (
-            "url userinfo",
-            "https://admin:password@example.test/path?q=<script>",
+            "workspace-shell.tsx",
+            include_str!("../web/src/components/workspace-shell.tsx"),
+        ),
+        (
+            "investigation-workspace.tsx",
+            include_str!("../web/src/components/investigate/investigation-workspace.tsx"),
+        ),
+        (
+            "ask-panel.tsx",
+            include_str!("../web/src/components/investigate/ask-panel.tsx"),
+        ),
+        (
+            "graph-canvas.tsx",
+            include_str!("../web/src/components/investigate/graph-canvas.tsx"),
+        ),
+        (
+            "evidence-panel.tsx",
+            include_str!("../web/src/components/investigate/evidence-panel.tsx"),
+        ),
+        (
+            "timeline-panel.tsx",
+            include_str!("../web/src/components/investigate/timeline-panel.tsx"),
         ),
     ];
 
-    // Browser textContent preserves payloads as literal text. Cortex's app
-    // intentionally relies on that DOM contract instead of ad hoc escaping.
-    for (label, payload) in fixtures {
-        assert_eq!(payload.to_string(), payload, "{label}");
+    for (name, source) in sources {
+        for forbidden in [
+            "dangerouslySetInnerHTML",
+            "innerHTML",
+            "outerHTML",
+            "insertAdjacentHTML",
+            "document.write",
+            "localStorage",
+            "sessionStorage",
+            "document.cookie",
+            "cytoscape-node-html-label",
+            "tippy(",
+        ] {
+            assert!(
+                !source.contains(forbidden),
+                "{name} must not use forbidden sink or storage API: {forbidden}"
+            );
+        }
     }
 
-    for forbidden_sink in [
-        "innerHTML",
-        "outerHTML",
-        "insertAdjacentHTML",
-        "document.write",
-        "Range().createContextualFragment",
-        "setHTML",
-    ] {
-        assert!(
-            !APP_JS.contains(forbidden_sink),
-            "dynamic rendering must not use {forbidden_sink}"
-        );
-    }
-
-    for expected_safe_sink in [
-        "el.textContent = value == null ? \"\" : String(value);",
-        "ui.selectedTitle.textContent = data.label || data.id;",
-        "ui.serverVersion.textContent = version.version || \"Unknown\";",
-        "ui.schemaVersion.textContent = `Schema ${version.schema_version ?? \"--\"}`;",
-        "ui.hostCount.textContent = String(normalizeHostSources(latestHosts)",
-        "ui.logCount.textContent = String(stats.total_logs ?? stats.total ?? \"--\");",
-    ] {
-        assert!(
-            APP_JS.contains(expected_safe_sink),
-            "missing safe text sink: {expected_safe_sink}"
-        );
-    }
-
-    // Cytoscape renders labels onto its own canvas/SVG renderer from data fields;
-    // the app does not configure HTML labels, HTML tooltips, or a plugin that
-    // would turn graph data into DOM markup.
-    assert!(APP_JS.contains("\"label\": \"data(label)\""));
-    assert!(!APP_JS.contains("cytoscape-node-html-label"));
-    assert!(!APP_JS.contains("tippy("));
-    assert!(!APP_JS.contains("qtip"));
+    let api_src = include_str!("../web/src/lib/investigation-api.ts");
+    assert!(api_src.contains("/api/v1/investigations/ask"));
+    assert!(api_src.contains("/api/v1/graph/around"));
+    assert!(api_src.contains("/api/v1/graph/explain"));
+    assert!(api_src.contains("/api/v1/graph/evidence"));
+    assert!(!api_src.contains("/api/ai/ask-history"));
 }
 
 #[tokio::test]

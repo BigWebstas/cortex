@@ -23,7 +23,10 @@
 *.log
 logs
 backups
-docs
+docs/*
+!docs/contracts
+docs/contracts/*
+!docs/contracts/agent-observatory-types.ts
 scripts
 !scripts/backup.sh
 specs
@@ -37,7 +40,12 @@ __pycache__
 .coverage
 htmlcov
 .hypothesis
+**/node_modules
 node_modules
+web/.next
+web/out
+web/playwright-report
+web/test-results
 dist
 coverage
 *.tsbuildinfo
