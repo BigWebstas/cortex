@@ -1,0 +1,837 @@
+{
+  "schema": 1,
+  "registry": {
+    "repository": "dinglebear-ai/aurora",
+    "source_revision": "19e87c6b26dd32eb3be3db4d8b6fb32c99cd1d6d",
+    "immutable_url_template": "https://raw.githubusercontent.com/dinglebear-ai/aurora/{sha}/public/r/{name}.json",
+    "package_version": "0.5.1"
+  },
+  "top_level_items": [
+    "aurora-base",
+    "aurora-sidebar-block",
+    "aurora-resizable-panels",
+    "aurora-data-table",
+    "aurora-filter-bar",
+    "aurora-timeline",
+    "aurora-chart",
+    "aurora-status-indicator",
+    "aurora-log-viewer",
+    "aurora-terminal-block",
+    "aurora-tool-calls",
+    "aurora-code-workspace",
+    "aurora-ai-conversation",
+    "aurora-ai-message",
+    "aurora-ai-agent",
+    "aurora-ai-plan",
+    "aurora-ai-task",
+    "aurora-ai-tool",
+    "aurora-ai-commit",
+    "aurora-ai-branch",
+    "aurora-empty-state",
+    "aurora-skeleton",
+    "aurora-spinner",
+    "aurora-sheet",
+    "aurora-dialog",
+    "aurora-tabs",
+    "aurora-tooltip",
+    "aurora-scroll-area",
+    "aurora-command-palette",
+    "aurora-breadcrumb",
+    "aurora-pagination",
+    "aurora-banner",
+    "aurora-toast"
+  ],
+  "resolved_items": [
+    {
+      "name": "aurora-ai-agent",
+      "type": "registry:block",
+      "source_sha256": "7b89e6d108b479317df381702e65fdcfd38727848be2c1514d96f51ca3034f08",
+      "registry_dependencies": [
+        "aurora-ai-elements",
+        "aurora-tokens"
+      ],
+      "npm_dependencies": [
+        "lucide-react@^0.487.0"
+      ],
+      "installed_files": [
+        "@components/aurora/ai/agent.tsx"
+      ]
+    },
+    {
+      "name": "aurora-ai-branch",
+      "type": "registry:block",
+      "source_sha256": "2e0086a6fd371a21b7d76cdab52d70ee1383b29811af65a92e3e575b0bc31807",
+      "registry_dependencies": [
+        "aurora-badge",
+        "aurora-button",
+        "aurora-components",
+        "aurora-tokens"
+      ],
+      "npm_dependencies": [
+        "lucide-react@^0.487.0"
+      ],
+      "installed_files": [
+        "@components/aurora/ai/branch.tsx"
+      ]
+    },
+    {
+      "name": "aurora-ai-commit",
+      "type": "registry:block",
+      "source_sha256": "7e94448d2155bb2439e680645a244e76b4f15a30f7d44671d1eb63fee14e5968",
+      "registry_dependencies": [
+        "aurora-ai-elements",
+        "aurora-tokens"
+      ],
+      "npm_dependencies": [
+        "lucide-react@^0.487.0"
+      ],
+      "installed_files": [
+        "@components/aurora/ai/commit.tsx"
+      ]
+    },
+    {
+      "name": "aurora-ai-conversation",
+      "type": "registry:block",
+      "source_sha256": "8f6540dfa29d12612c78cc913f28fa72cdeb22f55155a780aef9b93c46f67d4a",
+      "registry_dependencies": [
+        "aurora-ai-elements",
+        "aurora-avatar",
+        "aurora-tokens"
+      ],
+      "npm_dependencies": [
+        "lucide-react@^0.487.0"
+      ],
+      "installed_files": [
+        "@components/aurora/ai/conversation.tsx"
+      ]
+    },
+    {
+      "name": "aurora-ai-elements",
+      "type": "registry:block",
+      "source_sha256": "036b102c8bb4b145fa4aa8867d76ce471ac5f0ac28587ddeb3abc0844f1a344c",
+      "registry_dependencies": [
+        "aurora-avatar",
+        "aurora-badge",
+        "aurora-button",
+        "aurora-clipboard",
+        "aurora-safe-url",
+        "aurora-select",
+        "aurora-separator",
+        "aurora-spinner",
+        "aurora-textarea",
+        "aurora-tokens"
+      ],
+      "npm_dependencies": [
+        "lucide-react@^0.487.0"
+      ],
+      "installed_files": [
+        "@components/aurora/ai/action.tsx",
+        "@components/aurora/ai/actions.tsx",
+        "@components/aurora/ai/ai-elements.tsx",
+        "@components/aurora/ai/canvas.tsx",
+        "@components/aurora/ai/core.tsx",
+        "@components/aurora/ai/source.tsx",
+        "@components/aurora/ai/sources.tsx"
+      ]
+    },
+    {
+      "name": "aurora-ai-message",
+      "type": "registry:block",
+      "source_sha256": "ff992dbe97e66ada55dbebf6b99240f3f1376a9cbe3132580a183f9012b645ea",
+      "registry_dependencies": [
+        "aurora-ai-elements",
+        "aurora-avatar",
+        "aurora-components",
+        "aurora-tokens"
+      ],
+      "npm_dependencies": [
+        "lucide-react@^0.487.0"
+      ],
+      "installed_files": [
+        "@components/aurora/ai/message.tsx"
+      ]
+    },
+    {
+      "name": "aurora-ai-plan",
+      "type": "registry:block",
+      "source_sha256": "e981e59bcac986559667b089e6def4bb0b69bd4cc5990836da4b7d763474ab2a",
+      "registry_dependencies": [
+        "aurora-ai-elements",
+        "aurora-components",
+        "aurora-thinking",
+        "aurora-tokens"
+      ],
+      "npm_dependencies": [
+        "lucide-react@^0.487.0"
+      ],
+      "installed_files": [
+        "@components/aurora/ai/plan.tsx"
+      ]
+    },
+    {
+      "name": "aurora-ai-task",
+      "type": "registry:block",
+      "source_sha256": "8fe54f28bf0fa80f9447c41e2c197285ed5839c466356af4fdbae7f1bd1b31e1",
+      "registry_dependencies": [
+        "aurora-ai-elements",
+        "aurora-tokens"
+      ],
+      "npm_dependencies": [
+        "lucide-react@^0.487.0"
+      ],
+      "installed_files": [
+        "@components/aurora/ai/task.tsx"
+      ]
+    },
+    {
+      "name": "aurora-ai-tool",
+      "type": "registry:block",
+      "source_sha256": "67fee6822f44e2308ce9016c8d1cc6d5dbcff6420f3de7a9a5b2a5c65db2f256",
+      "registry_dependencies": [
+        "aurora-ai-elements",
+        "aurora-components",
+        "aurora-tokens",
+        "aurora-tool-calls"
+      ],
+      "npm_dependencies": [
+        "lucide-react@^0.487.0"
+      ],
+      "installed_files": [
+        "@components/aurora/ai/tool.tsx"
+      ]
+    },
+    {
+      "name": "aurora-avatar",
+      "type": "registry:ui",
+      "source_sha256": "632f02a8ee2636816cd1dcb186d9888dfe76a31a30f2795cf6577c3bc3fc5865",
+      "registry_dependencies": [
+        "aurora-components",
+        "aurora-tokens"
+      ],
+      "npm_dependencies": [
+        "@radix-ui/react-avatar@^1.1.11"
+      ],
+      "installed_files": [
+        "@ui/aurora/avatar.tsx"
+      ]
+    },
+    {
+      "name": "aurora-badge",
+      "type": "registry:ui",
+      "source_sha256": "dccfd3db21710a7ccfb5676c25b296bd3f17b6da68c16a312d70ea7ba7d6f121",
+      "registry_dependencies": [
+        "aurora-tokens"
+      ],
+      "npm_dependencies": [
+        "@radix-ui/react-slot@^1.2.3",
+        "lucide-react@^1.21.0"
+      ],
+      "installed_files": [
+        "@ui/aurora/badge.tsx"
+      ]
+    },
+    {
+      "name": "aurora-banner",
+      "type": "registry:ui",
+      "source_sha256": "a29708cc5ef46d5e328376c6330cda0fcd80690735e50b5636370ae1830c9c69",
+      "registry_dependencies": [
+        "aurora-button",
+        "aurora-tokens"
+      ],
+      "npm_dependencies": [
+        "lucide-react@^0.487.0"
+      ],
+      "installed_files": [
+        "@ui/aurora/banner.tsx"
+      ]
+    },
+    {
+      "name": "aurora-base",
+      "type": "registry:base",
+      "source_sha256": "f68d8186b73864631467c614a4479dd40d5629139933cc3b987be74546fe2ec6",
+      "registry_dependencies": [
+        "aurora-badge",
+        "aurora-button",
+        "aurora-card",
+        "aurora-command-palette",
+        "aurora-components",
+        "aurora-dialog",
+        "aurora-file-tree",
+        "aurora-fonts",
+        "aurora-input",
+        "aurora-prompt-input",
+        "aurora-tabs",
+        "aurora-terminal-block",
+        "aurora-textarea",
+        "aurora-tokens"
+      ],
+      "npm_dependencies": [
+        "class-variance-authority@^0.7.1",
+        "clsx@^2.1.1",
+        "lucide-react@^1.21.0",
+        "tailwind-merge@^3.3.1",
+        "tw-animate-css@^1.3.6"
+      ],
+      "installed_files": []
+    },
+    {
+      "name": "aurora-breadcrumb",
+      "type": "registry:ui",
+      "source_sha256": "f3730bb034edfcd245d27f6cfc612c217336c3e6c92b33a7f71e053bc7f34e2e",
+      "registry_dependencies": [
+        "aurora-badge",
+        "aurora-tokens"
+      ],
+      "npm_dependencies": [
+        "@radix-ui/react-slot@^1.2.3",
+        "lucide-react@^0.487.0"
+      ],
+      "installed_files": [
+        "@ui/aurora/breadcrumb.tsx"
+      ]
+    },
+    {
+      "name": "aurora-button",
+      "type": "registry:ui",
+      "source_sha256": "91ca8218cbf3094e5fa5919143fd0ef63bf2518b01667b6343b24e307a6e74f8",
+      "registry_dependencies": [
+        "aurora-components",
+        "aurora-tokens"
+      ],
+      "npm_dependencies": [
+        "@radix-ui/react-slot@^1.2.3",
+        "class-variance-authority@^0.7.1"
+      ],
+      "installed_files": [
+        "@ui/aurora/button.tsx"
+      ]
+    },
+    {
+      "name": "aurora-card",
+      "type": "registry:ui",
+      "source_sha256": "22a4a65273f6c4923e963005ae07def128f2703e32476818b71293da564d4206",
+      "registry_dependencies": [
+        "aurora-components",
+        "aurora-tokens"
+      ],
+      "npm_dependencies": [],
+      "installed_files": [
+        "@ui/aurora/card.tsx"
+      ]
+    },
+    {
+      "name": "aurora-chart",
+      "type": "registry:ui",
+      "source_sha256": "c897ade20a81cb70e377d8b6d02f0ec8b2b9ea36793f4965bb1417bd2cfa6bc5",
+      "registry_dependencies": [
+        "aurora-tokens"
+      ],
+      "npm_dependencies": [],
+      "installed_files": [
+        "@ui/aurora/chart.tsx"
+      ]
+    },
+    {
+      "name": "aurora-clipboard",
+      "type": "registry:lib",
+      "source_sha256": "6fafe91c83306ee1b00f01d1fd76a583894a7f2d37ac099ee551b5b4dbf071b2",
+      "registry_dependencies": [],
+      "npm_dependencies": [],
+      "installed_files": [
+        "@lib/aurora/use-clipboard.ts"
+      ]
+    },
+    {
+      "name": "aurora-code-block",
+      "type": "registry:block",
+      "source_sha256": "d982169ae6d25b63858cc3332db501fa9944f9339474b7e0a0ffb2237f76aa2d",
+      "registry_dependencies": [
+        "aurora-button",
+        "aurora-clipboard",
+        "aurora-textarea",
+        "aurora-tokens"
+      ],
+      "npm_dependencies": [
+        "lucide-react@^1.21.0"
+      ],
+      "installed_files": [
+        "@components/aurora/code-block.tsx"
+      ]
+    },
+    {
+      "name": "aurora-code-editor",
+      "type": "registry:block",
+      "source_sha256": "c3679c7dbad10c96aad07aec3ed66f22e2d97c4ef1cb4a4eb2a2a9d88aa3e6e0",
+      "registry_dependencies": [
+        "aurora-button",
+        "aurora-components",
+        "aurora-tokens"
+      ],
+      "npm_dependencies": [
+        "lucide-react@^1.21.0"
+      ],
+      "installed_files": [
+        "@components/aurora/code-editor.tsx",
+        "@components/aurora/tokenizer.ts"
+      ]
+    },
+    {
+      "name": "aurora-code-workspace",
+      "type": "registry:block",
+      "source_sha256": "8ca8a5d85e8cbb8f4ac7ffbc22873810549ea74bec846ff57dafa62c0e5fd536",
+      "registry_dependencies": [
+        "aurora-badge",
+        "aurora-code-editor",
+        "aurora-empty-state",
+        "aurora-file-tree",
+        "aurora-tokens"
+      ],
+      "npm_dependencies": [],
+      "installed_files": [
+        "@components/aurora/code-workspace.tsx"
+      ]
+    },
+    {
+      "name": "aurora-command-palette",
+      "type": "registry:block",
+      "source_sha256": "1aa9c4dfb48e8f73c2515967d03661101fa7433968c1583a4ff7c3daccba37a9",
+      "registry_dependencies": [
+        "aurora-button",
+        "aurora-components",
+        "aurora-input",
+        "aurora-tokens"
+      ],
+      "npm_dependencies": [
+        "lucide-react@^1.21.0"
+      ],
+      "installed_files": [
+        "@components/aurora/command-palette.tsx"
+      ]
+    },
+    {
+      "name": "aurora-components",
+      "type": "registry:style",
+      "source_sha256": "06602be3f205c3d6447953a354669cf2975801dad7e0b996a662220c15fd9b4f",
+      "registry_dependencies": [
+        "aurora-tokens"
+      ],
+      "npm_dependencies": [],
+      "installed_files": [
+        "registry/aurora/styles/aurora-components.css"
+      ]
+    },
+    {
+      "name": "aurora-data-table",
+      "type": "registry:ui",
+      "source_sha256": "773c75562312fb9ec9ce69fce1325607eae206ec514f2f2dfe572e18e11b6351",
+      "registry_dependencies": [
+        "aurora-button",
+        "aurora-tokens"
+      ],
+      "npm_dependencies": [
+        "lucide-react@^0.487.0"
+      ],
+      "installed_files": [
+        "@ui/aurora/data-table.tsx"
+      ]
+    },
+    {
+      "name": "aurora-dialog",
+      "type": "registry:ui",
+      "source_sha256": "2f4f7bf6ee950623b21b750e212845bf2223bfa99f8b4e162146e164e92f6e9c",
+      "registry_dependencies": [
+        "aurora-tokens"
+      ],
+      "npm_dependencies": [
+        "@radix-ui/react-dialog@^1.1.15",
+        "lucide-react@^0.487.0"
+      ],
+      "installed_files": [
+        "@ui/aurora/dialog.tsx"
+      ]
+    },
+    {
+      "name": "aurora-empty-state",
+      "type": "registry:ui",
+      "source_sha256": "8c908fa98c9003fe31961d75d506b7ea957a4ec21f069041cb910d288fa6cb27",
+      "registry_dependencies": [
+        "aurora-tokens"
+      ],
+      "npm_dependencies": [],
+      "installed_files": [
+        "@ui/aurora/empty-state.tsx"
+      ]
+    },
+    {
+      "name": "aurora-file-tree",
+      "type": "registry:block",
+      "source_sha256": "5a88d6e7a6e3e66f6f034d4063ac42f39718faf7a88629bc89c5b3a16683e759",
+      "registry_dependencies": [
+        "aurora-button",
+        "aurora-components",
+        "aurora-empty-state",
+        "aurora-tokens"
+      ],
+      "npm_dependencies": [
+        "lucide-react@^0.487.0"
+      ],
+      "installed_files": [
+        "@components/aurora/file-tree.tsx"
+      ]
+    },
+    {
+      "name": "aurora-filter-bar",
+      "type": "registry:ui",
+      "source_sha256": "ff1ab84ddf6756c8b0e89058161abf3307d90053c151d8782c4b8a6f4de925e0",
+      "registry_dependencies": [
+        "aurora-button",
+        "aurora-tokens"
+      ],
+      "npm_dependencies": [
+        "lucide-react@^0.487.0"
+      ],
+      "installed_files": [
+        "@ui/aurora/filter-bar.tsx"
+      ]
+    },
+    {
+      "name": "aurora-fonts",
+      "type": "registry:style",
+      "source_sha256": "889e260a1b89b259dc7702dddd3bde0adaa1851c7f8e76dd0aeae15c9bf38ac5",
+      "registry_dependencies": [],
+      "npm_dependencies": [],
+      "installed_files": [
+        "registry/aurora/styles/aurora-fonts.css"
+      ]
+    },
+    {
+      "name": "aurora-input",
+      "type": "registry:ui",
+      "source_sha256": "2dfcc707e560e7c53c67312193b5f547bf326fa1be683830388114ac85ad7f24",
+      "registry_dependencies": [
+        "aurora-tokens"
+      ],
+      "npm_dependencies": [
+        "lucide-react@^0.487.0"
+      ],
+      "installed_files": [
+        "@ui/aurora/input.tsx"
+      ]
+    },
+    {
+      "name": "aurora-log-viewer",
+      "type": "registry:page",
+      "source_sha256": "fe6cb3a2c19d860b79be9439a199a10076ecab0e36ecd99b9912aa462888c42d",
+      "registry_dependencies": [
+        "aurora-badge",
+        "aurora-base",
+        "aurora-code-block"
+      ],
+      "npm_dependencies": [],
+      "installed_files": [
+        "app/aurora/log-viewer/page.tsx"
+      ]
+    },
+    {
+      "name": "aurora-pagination",
+      "type": "registry:ui",
+      "source_sha256": "bb8588b2727992edef263b2876cc99d5870373df26451f367df1772a57b7a1d0",
+      "registry_dependencies": [
+        "aurora-button",
+        "aurora-tokens"
+      ],
+      "npm_dependencies": [
+        "lucide-react@^0.487.0"
+      ],
+      "installed_files": [
+        "@ui/aurora/pagination.tsx"
+      ]
+    },
+    {
+      "name": "aurora-portal-container",
+      "type": "registry:lib",
+      "source_sha256": "640fe21a73a8d0481e5a4677748f2897f68b0fc9482f8a4813d41c72e5062c3e",
+      "registry_dependencies": [],
+      "npm_dependencies": [],
+      "installed_files": [
+        "@lib/aurora/portal-container.tsx"
+      ]
+    },
+    {
+      "name": "aurora-prompt-input",
+      "type": "registry:block",
+      "source_sha256": "768551eb246d3a643533ab95cf7cbd1735cced0976e5eb1b4aa4de9afcb1cfa8",
+      "registry_dependencies": [
+        "aurora-button",
+        "aurora-textarea",
+        "aurora-tokens"
+      ],
+      "npm_dependencies": [],
+      "installed_files": [
+        "@components/aurora/prompt-input.tsx"
+      ]
+    },
+    {
+      "name": "aurora-resizable-panels",
+      "type": "registry:ui",
+      "source_sha256": "163965408ae532d647820c6226e2420b7ac013071bbf5f77f0d51ff0645043a3",
+      "registry_dependencies": [
+        "aurora-tokens"
+      ],
+      "npm_dependencies": [],
+      "installed_files": [
+        "@ui/aurora/resizable-panels.tsx"
+      ]
+    },
+    {
+      "name": "aurora-safe-url",
+      "type": "registry:lib",
+      "source_sha256": "22c37120e276de266ddc187ad84e0c15f8cb63039c976c33c2a987fba6c211c2",
+      "registry_dependencies": [],
+      "npm_dependencies": [],
+      "installed_files": [
+        "@lib/aurora/safe-url.ts"
+      ]
+    },
+    {
+      "name": "aurora-scroll-area",
+      "type": "registry:ui",
+      "source_sha256": "2954eb5e93a098531151656261e543535da88433bd129cb79cdf67d63d00a358",
+      "registry_dependencies": [
+        "aurora-tokens"
+      ],
+      "npm_dependencies": [],
+      "installed_files": [
+        "@ui/aurora/scroll-area.tsx"
+      ]
+    },
+    {
+      "name": "aurora-select",
+      "type": "registry:ui",
+      "source_sha256": "2f08747bb082712495a5082a3e6fe6bd92b5229ecc3701e3195158907112ecd0",
+      "registry_dependencies": [
+        "aurora-portal-container",
+        "aurora-tokens"
+      ],
+      "npm_dependencies": [
+        "@radix-ui/react-select@^2.2.6",
+        "lucide-react@^0.487.0"
+      ],
+      "installed_files": [
+        "@ui/aurora/select.tsx"
+      ]
+    },
+    {
+      "name": "aurora-separator",
+      "type": "registry:ui",
+      "source_sha256": "0d6ff2865c7fe815341b3735100b76e0452910517841e353e57a48557a1ac951",
+      "registry_dependencies": [
+        "aurora-tokens"
+      ],
+      "npm_dependencies": [],
+      "installed_files": [
+        "@ui/aurora/separator.tsx"
+      ]
+    },
+    {
+      "name": "aurora-sheet",
+      "type": "registry:ui",
+      "source_sha256": "bed6ca5e7ea792004964e6db8d5b7e6454e1b924cdaf2253a9a2025f3a8fead1",
+      "registry_dependencies": [
+        "aurora-portal-container",
+        "aurora-tokens"
+      ],
+      "npm_dependencies": [
+        "@radix-ui/react-dialog@^1.1.15",
+        "lucide-react@^0.487.0"
+      ],
+      "installed_files": [
+        "@ui/aurora/sheet.tsx"
+      ]
+    },
+    {
+      "name": "aurora-sidebar-block",
+      "type": "registry:block",
+      "source_sha256": "bfa774dae83a57f1e58ed925d8b48511318f7c07e16037b7b024fc86e075da75",
+      "registry_dependencies": [
+        "aurora-avatar",
+        "aurora-button",
+        "aurora-input",
+        "aurora-tokens"
+      ],
+      "npm_dependencies": [
+        "lucide-react@^1.21.0"
+      ],
+      "installed_files": [
+        "@components/aurora/sidebar.tsx"
+      ]
+    },
+    {
+      "name": "aurora-skeleton",
+      "type": "registry:ui",
+      "source_sha256": "8a93272758ccdf62684dc4ab8211dd6b104d3d2a7282a030f77fa0e9473032d1",
+      "registry_dependencies": [
+        "aurora-components",
+        "aurora-tokens"
+      ],
+      "npm_dependencies": [
+        "class-variance-authority@^0.7.1"
+      ],
+      "installed_files": [
+        "@ui/aurora/skeleton.tsx"
+      ]
+    },
+    {
+      "name": "aurora-spinner",
+      "type": "registry:ui",
+      "source_sha256": "ba20f4263e1a9f7bc78a88cdf199a29e967f2318ef106269e67748e846d404f2",
+      "registry_dependencies": [
+        "aurora-tokens"
+      ],
+      "npm_dependencies": [],
+      "installed_files": [
+        "@ui/aurora/spinner.tsx"
+      ]
+    },
+    {
+      "name": "aurora-status-indicator",
+      "type": "registry:ui",
+      "source_sha256": "fb11a9b7448c70eec1e7159b4ebb145caf763c1ac058c214372ccf813b2ef28e",
+      "registry_dependencies": [
+        "aurora-tokens"
+      ],
+      "npm_dependencies": [],
+      "installed_files": [
+        "@ui/aurora/status-indicator.tsx"
+      ]
+    },
+    {
+      "name": "aurora-tabs",
+      "type": "registry:ui",
+      "source_sha256": "b5f9edc2e65a50e6fd6978a859eb118bf263228d1a67fcdd15debbe57d334514",
+      "registry_dependencies": [
+        "aurora-tokens"
+      ],
+      "npm_dependencies": [
+        "@radix-ui/react-tabs@^1.1.13"
+      ],
+      "installed_files": [
+        "@ui/aurora/tabs.tsx"
+      ]
+    },
+    {
+      "name": "aurora-terminal-block",
+      "type": "registry:block",
+      "source_sha256": "54c69e5921ae423e55f788d6b340c096b19f1f8b085c62b1e5dd20d4d033aaac",
+      "registry_dependencies": [
+        "aurora-button",
+        "aurora-components",
+        "aurora-tokens"
+      ],
+      "npm_dependencies": [
+        "lucide-react@^1.21.0"
+      ],
+      "installed_files": [
+        "@components/aurora/terminal.tsx"
+      ]
+    },
+    {
+      "name": "aurora-textarea",
+      "type": "registry:ui",
+      "source_sha256": "06737d18826d28daf868732ff717a68e61ae9db8b734ce7e5ed0f417a9154c61",
+      "registry_dependencies": [
+        "aurora-tokens"
+      ],
+      "npm_dependencies": [],
+      "installed_files": [
+        "@ui/aurora/textarea.tsx"
+      ]
+    },
+    {
+      "name": "aurora-thinking",
+      "type": "registry:block",
+      "source_sha256": "20a179026d4bfeb10b9afce98a9e1f3e78eb2ff8dec99457aea671384b607c80",
+      "registry_dependencies": [
+        "aurora-button",
+        "aurora-components",
+        "aurora-skeleton",
+        "aurora-tokens"
+      ],
+      "npm_dependencies": [],
+      "installed_files": [
+        "@components/aurora/thinking.tsx"
+      ]
+    },
+    {
+      "name": "aurora-timeline",
+      "type": "registry:ui",
+      "source_sha256": "71cbcef87922e2bca83664cb91f5f45d03be7ef94753b7b7ea903afd05bdd122",
+      "registry_dependencies": [
+        "aurora-status-indicator",
+        "aurora-tokens"
+      ],
+      "npm_dependencies": [],
+      "installed_files": [
+        "@ui/aurora/timeline.tsx"
+      ]
+    },
+    {
+      "name": "aurora-toast",
+      "type": "registry:ui",
+      "source_sha256": "1b7523f279af9bb449feaac0ec79b5cbdd88d392de013bc9e4a0a8abc102b554",
+      "registry_dependencies": [
+        "aurora-button",
+        "aurora-components",
+        "aurora-tokens"
+      ],
+      "npm_dependencies": [],
+      "installed_files": [
+        "@ui/aurora/toast.tsx"
+      ]
+    },
+    {
+      "name": "aurora-tokens",
+      "type": "registry:style",
+      "source_sha256": "c50ef305e7f8b21416d638521b9b40061b125aed61d40d4b5fc170885527d07b",
+      "registry_dependencies": [],
+      "npm_dependencies": [],
+      "installed_files": [
+        "registry/aurora/styles/aurora.css"
+      ]
+    },
+    {
+      "name": "aurora-tool-calls",
+      "type": "registry:block",
+      "source_sha256": "936716ed396a65b9022c06313e5718e1bd00deb893bbaecb352baa50a5365896",
+      "registry_dependencies": [
+        "aurora-badge",
+        "aurora-button",
+        "aurora-components",
+        "aurora-empty-state",
+        "aurora-input",
+        "aurora-tokens"
+      ],
+      "npm_dependencies": [],
+      "installed_files": [
+        "@components/aurora/tool-calls-model.ts",
+        "@components/aurora/tool-calls.tsx"
+      ]
+    },
+    {
+      "name": "aurora-tooltip",
+      "type": "registry:ui",
+      "source_sha256": "34f475fcd4de2498f5f07f5476426956e67ee5842d32935baf24d72bea11b7c4",
+      "registry_dependencies": [
+        "aurora-portal-container",
+        "aurora-tokens"
+      ],
+      "npm_dependencies": [
+        "@radix-ui/react-tooltip@^1.2.8"
+      ],
+      "installed_files": [
+        "@ui/aurora/tooltip.tsx"
+      ]
+    }
+  ],
+  "files": []
+}

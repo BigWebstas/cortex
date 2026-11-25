@@ -623,3 +623,17 @@ RED: `/app/agents/` had no exported route, deterministic static server, browser 
 GREEN: added Playwright 1.61.1 and `@axe-core/playwright` 4.12.1, a dependency-free loopback static-export server that mounts `web/out` at `/app`, and desktop Chrome plus Pixel 7 projects
 PROOF: both Chromium projects passed route, title, main landmark, heading, and zero-violation axe assertions against `/app/agents/`
 GATE: the harness uses only static contract-backed shells; a later phase replaces this local server with the real Cortex binary
+
+## AO-068 Create Aurora lock schema and audit script
+commit/worktree SHA: `fix/web-workspace-evidence` (pre-commit proof)
+RED: `pnpm --dir web vitest run tests/aurora-lock.test.ts` failed because `scripts/audit-aurora.mjs` did not exist
+GREEN: added `web/aurora.lock.json` and an offline audit covering the full revision SHA, source hashes, graph completeness, installed-file presence and hashes, path containment, mutable URLs and unexplained edits
+PROOF: fixtures reject an altered file and mutable URLs; `node web/scripts/audit-aurora.mjs` fails with `no installed files are recorded` until AO-070
+NOTES: the parallel-primitive scan belongs to AO-073
+
+## AO-069 Resolve pinned Aurora dependency graph
+commit/worktree SHA: `fix/web-workspace-evidence` (pre-commit proof)
+RED: same missing-module failure for `scripts/resolve-aurora.mjs`
+GREEN: added an explicit `--refresh` resolver that walks only `@aurora/` dependencies and records sorted per-item hashes
+PROOF: cycle/repeat fixtures resolve once; two refreshes of revision `19e87c6b26dd32eb3be3db4d8b6fb32c99cd1d6d` produced byte-identical locks with 53 items
+NOTES: registry requests two `lucide-react` ranges (`^0.487.0`, `^1.21.0`); font CSS references `aurora.tootie.tv`; `aurora-base` lists no files of its own. Resolve before and during AO-070 to AO-072
