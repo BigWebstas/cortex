@@ -189,6 +189,7 @@ pub struct ApiState {
     pub notifications_config: NotificationsConfig,
     pub cursor_keys: crate::stream::CursorKeys,
     pub stream_client_permits: Arc<Semaphore>,
+    observatory_stream: crate::agent_observatory::stream::StreamHub,
     pub integration_profile: Arc<serde_json::Value>,
 }
 
@@ -237,6 +238,9 @@ impl ApiState {
             notifications_config,
             cursor_keys,
             stream_client_permits: crate::stream::shared_client_permits(),
+            observatory_stream: crate::agent_observatory::stream::StreamHub::new(
+                &Default::default(),
+            ),
             integration_profile: Arc::new(integration_profile),
         })
     }
@@ -249,6 +253,15 @@ impl ApiState {
     #[cfg(test)]
     pub fn with_isolated_maintenance_permit(mut self) -> Self {
         self.maintenance_permit = Arc::new(Semaphore::new(1));
+        self
+    }
+
+    /// Applies the configured Agent Observatory stream limits.
+    pub fn with_observatory_stream(
+        mut self,
+        config: &crate::config::AgentObservatoryStreamConfig,
+    ) -> Self {
+        self.observatory_stream = crate::agent_observatory::stream::StreamHub::new(config);
         self
     }
 

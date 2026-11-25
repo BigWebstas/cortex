@@ -24,7 +24,7 @@ updated: 2026-09-30
 
 ## Endpoint matrix
 
-101 method/path bindings total. Scope is `read` (mounted via `axum::routing::get`,
+102 method/path bindings total. Scope is `read` (mounted via `axum::routing::get`,
 hits read-side `db_permits`) or `admin`. Database maintenance and integrity
 checks share one process-wide maintenance gate; concurrent attempts receive a
 busy response. Admin mutations are audited before the service call.
@@ -118,13 +118,13 @@ under the source principal; metadata budgets preserve that proof for new rows.
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | GET | `/api/recurring-error-comparison` | read | query: `signature_hash?`, `since?`, `until?`, `window_minutes?` (5..1440), `limit?` (1..50), `include_acknowledged?` | `RecurringErrorComparisonResponse { focal_from, focal_to, baseline_from, baseline_to, candidate_rows, candidate_cap, candidate_window_truncated, results_truncated, privacy_policy, comparisons }` | 200, 400, 401, 503, 500 | Y | Compares canonical recurring-error signatures in the focal window against the adjacent baseline. Candidates are capped at 512 before deterministic ranking; response text is irreversibly scrubbed and bounded. Each bundle has a replayable SHA-256 identity over canonical source keys, evidence revision, window, and privacy policy, plus bounded graph evidence handles and an explicit next graph query. Boundary/retention/projection gaps are markers, not silent zeroes; rankings are evidence-led and do not claim causation. MCP: `recurring_error_comparison` (`cortex:read`). |
 
-### Agent Observatory (8 canonical routes plus 5 compatibility aliases)
+### Agent Observatory (9 canonical routes plus 5 compatibility aliases)
 
 All Agent Observatory endpoints are read-only, token-gated, cursor-paged, and
 return source-attributed, redacted projection data. For lists, the
 `/api/agent-observatory/*` spellings are canonical and the shorter forms remain
-compatibility routes. The single-resource and repository-scoped run routes exist
-only in the short form.
+compatibility routes. The single-resource, repository-scoped run and stream routes
+exist only in the short form.
 
 | Method | Path | Scope | Request | Response (top-level) | Status codes | Idempotent | Notes |
 | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -136,6 +136,7 @@ only in the short form.
 | GET | `/api/repositories/{repository_id}` | read | none | one repository | 200, 400, 401, 404, 503, 500 | Y | Unknown IDs return `repository_not_found`. |
 | GET | `/api/repositories/{repository_id}/runs` | read | the run list filters except `repository_id` | paged runs | 200, 400, 401, 404, 503, 500 | Y | Runs with any worktree relation to the repository. |
 | GET | `/api/agent-runs/{run_key}` | read | none; `run_key` is percent-encoded | `{ run, actors, worktree_evidence, available_event_kinds, commit_summary, latest_stream_cursor }` | 200, 400, 401, 404, 503, 500 | Y | Actors and worktree evidence are capped; `commit_summary` is the most recently related commit or null. |
+| GET | `/api/agent-runs/stream` | read | `Last-Event-ID` header or `after?`, `repository_id?`, `worktree_id?`, `run_key?` | server-sent events carrying `StreamEnvelope` | 200, 400, 401, 429, 500 | Y | Replays then follows the outbox. An `observatory.reset` event means take a new snapshot. Connections end after 15 minutes. |
 
 ### Artifact ecosystem evidence (2) — W16
 
@@ -215,7 +216,7 @@ only in the short form.
 
 Inventory clients start at `/api/graph/entities`, follow `next_cursor` to exhaustion, then page `/api/graph/relationships` with the returned `snapshot_cursor`. A 409 means the projection changed between pages: discard that bootstrap and restart. After both inventories complete, poll `/api/graph/changes` with `snapshot_cursor`, applying events in sequence and storing each `next_cursor`. A 410 means the retained journal no longer covers the cursor: discard the local copy and bootstrap again. Change upserts reflect the latest committed projection; an object removed before its event is read becomes a tombstone. Responses report projection status, source watermark, completion time, degradation, and truncation. The journal retains at most seven days or 200,000 events, whichever is less; consumers should poll about once per minute and recover from expiry. This is a read-only surface under the same bearer authorization and heavy-read admission as other graph queries. Inventory exposes canonical `(entity_type, canonical_key)` identities, not aliases or raw logs/session content. Host, app, and service-instance names must not be merged by display label; resolve aliases with `/api/graph/entity`. Relationship keys are projection-scoped; apply tombstones and upserts when rebuilding changes endpoint IDs.
 
-**Total: 101 method/path bindings** (current surface registry, including syslog,
+**Total: 102 method/path bindings** (current surface registry, including syslog,
 surface-parity, AI, graph, compose, notification, error-ack, and DB routes;
 includes the 3 hook routes above, added alongside the `ai_hook_events`
 subsystem).

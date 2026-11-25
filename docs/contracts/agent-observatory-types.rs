@@ -174,8 +174,8 @@ pub struct AgentRunSummary {
     pub tool: String,
     pub provider_tool: Option<String>,
     pub hostname: String,
-    pub parent_run_key: Option<String>,
-    pub previous_run_key: Option<String>,
+    pub parent_run_id: Option<Id>,
+    pub previous_run_id: Option<Id>,
     pub status: RunStatus,
     pub status_reason: String,
     pub status_observed_at: Timestamp,
@@ -183,13 +183,14 @@ pub struct AgentRunSummary {
     pub last_activity_at: Timestamp,
     pub ended_at: Option<Timestamp>,
     pub transcript_path: Option<String>,
-    pub primary_worktree: Option<WorktreeSummary>,
+    pub primary_worktree_id: Option<Id>,
     pub primary_branch: Option<String>,
     pub start_head_sha: Option<String>,
     pub current_head_sha: Option<String>,
     pub event_count: u64,
     pub error_count: u64,
-    pub freshness: RunFreshness,
+    /// JSON-encoded freshness lanes.
+    pub freshness_json: String,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -222,7 +223,8 @@ pub struct AgentRunEvent {
     pub severity: String,
     pub title: String,
     pub summary: String,
-    pub payload: Option<JsonObject>,
+    /// JSON-encoded payload, present only with `include=payload`.
+    pub payload_json: Option<String>,
     pub content_scrubbed: bool,
 }
 

@@ -17,7 +17,7 @@ from pathlib import Path
 def request(base: str, method: str, path: str, token: str | None, admin: str | None,
             body: dict | None = None) -> tuple[int, bytes, dict[str, str]]:
     data = None if body is None else json.dumps(body, separators=(",", ":")).encode()
-    is_stream = path.startswith("/api/streams/")
+    is_stream = path.startswith(("/api/streams/", "/api/agent-runs/stream"))
     headers = {"Host": "localhost", "Accept": "text/event-stream" if is_stream else "application/json"}
     if token:
         headers["Authorization"] = f"Bearer {token}"
@@ -66,6 +66,7 @@ QUERY = {
     # Single-resource routes reject unknown query parameters, so send none.
     "/api/repositories/{repository_id}": {},
     "/api/agent-runs/{run_key}": {},
+    "/api/agent-runs/stream": {},
     "/api/repositories/{repository_id}/runs": {"limit": "5"},
     "/api/repositories/{repository_id}/worktrees": {"limit": "5"},
     "/api/sessions/rendered": {},
@@ -219,6 +220,7 @@ CONTRACTS = {
     "GET /api/source-ips": ("object", "source_ips total"),
     "GET /api/stats": ("object", "agent_docker_gate_blocked_count free_disk_mb logical_db_size_mb max_db_size_mb min_free_disk_mb newest_log oldest_log phantom_fts_rows physical_db_size_mb total_hosts total_logs write_blocked"),
     "GET /api/streams/logs": (None, ""),
+    "GET /api/agent-runs/stream": (None, ""),
     "GET /api/streams/sessions": (None, ""),
     "GET /api/tail": ("object", "count logs"),
     "GET /api/timeline": ("object", "bucket group_by points rollup_as_of"),

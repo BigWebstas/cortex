@@ -25,6 +25,11 @@ mod detail;
 pub use detail::{
     latest_run_commit, latest_stream_cursor, list_run_event_kinds, list_run_worktree_evidence,
 };
+#[path = "agent_observatory_outbox.rs"]
+mod outbox;
+pub use outbox::{
+    OutboxCursorState, OutboxFilter, OutboxPage, OutboxStreamRow, latest_outbox_id, outbox_page,
+};
 #[path = "agent_observatory_sources.rs"]
 mod sources;
 pub use sources::{

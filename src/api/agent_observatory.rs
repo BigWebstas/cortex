@@ -1,13 +1,21 @@
 //! Agent Observatory single-resource and repository-scoped routes.
 
+use std::convert::Infallible;
+
 use axum::{
     Json, Router,
     extract::{Path, Query, State},
-    response::IntoResponse,
+    http::{HeaderMap, HeaderValue, StatusCode, header},
+    response::{
+        IntoResponse, Response,
+        sse::{Event, KeepAlive, Sse},
+    },
 };
 use serde::Deserialize;
+use serde_json::json;
 
 use super::{ApiState, RunResources, WorktreeResources, observatory_page, respond};
+use crate::agent_observatory::stream::Filter;
 use crate::db::agent_observatory as observatory;
 use crate::surfaces::get;
 
@@ -24,6 +32,68 @@ pub(super) fn routes() -> Router<ApiState> {
             get(repository_runs),
         )
         .contract_route("GET /api/agent-runs/{run_key}", get(run))
+        .contract_route("GET /api/agent-runs/stream", get(stream))
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct StreamQuery {
+    after: Option<String>,
+    repository_id: Option<i64>,
+    worktree_id: Option<i64>,
+    run_key: Option<String>,
+}
+
+fn stream_error(status: StatusCode, code: &str) -> Response {
+    (status, Json(json!({ "error": code }))).into_response()
+}
+
+async fn stream(
+    State(state): State<ApiState>,
+    Query(query): Query<StreamQuery>,
+    headers: HeaderMap,
+) -> Response {
+    // The header a reconnecting client sends wins over the query fallback.
+    let cursor = match headers.get("last-event-id") {
+        Some(value) => Some(value.to_str().unwrap_or_default()),
+        None => query.after.as_deref(),
+    };
+    let after = match cursor.map(|value| value.parse::<u64>().map(i64::try_from)) {
+        None => None,
+        Some(Ok(Ok(id))) => Some(id),
+        Some(_) => return stream_error(StatusCode::BAD_REQUEST, "invalid_cursor"),
+    };
+    if query.run_key.as_ref().is_some_and(|key| key.len() > 1024) {
+        return stream_error(StatusCode::BAD_REQUEST, "invalid_query");
+    }
+    let filter = Filter {
+        run_key: query.run_key,
+        repository_id: query.repository_id,
+        worktree_id: query.worktree_id,
+    };
+    let hub = &state.observatory_stream;
+    let Some(mut subscription) = hub.subscribe(state.service.clone(), after, filter) else {
+        return stream_error(StatusCode::TOO_MANY_REQUESTS, "stream_client_limit");
+    };
+    let events = async_stream::stream! {
+        yield Ok::<_, Infallible>(Event::default().retry(std::time::Duration::from_secs(3)));
+        while let Some(frame) = subscription.next().await {
+            yield Ok(Event::default().id(frame.id).event(frame.event).data(frame.data));
+        }
+    };
+    let keepalive = KeepAlive::new().interval(hub.keepalive()).text("keepalive");
+    let mut response = Sse::new(events).keep_alive(keepalive).into_response();
+    let headers = response.headers_mut();
+    headers.insert(
+        header::CACHE_CONTROL,
+        HeaderValue::from_static("no-cache, no-store"),
+    );
+    headers.insert(
+        header::X_CONTENT_TYPE_OPTIONS,
+        HeaderValue::from_static("nosniff"),
+    );
+    headers.insert("x-accel-buffering", HeaderValue::from_static("no"));
+    response
 }
 
 #[derive(Debug, Deserialize)]

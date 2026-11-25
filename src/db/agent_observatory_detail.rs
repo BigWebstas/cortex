@@ -78,11 +78,5 @@ pub fn latest_run_commit(pool: &DbPool, run_id: i64) -> Result<Vec<AgentRunAttri
 }
 
 pub fn latest_stream_cursor(pool: &DbPool) -> Result<i64> {
-    pool.get()?
-        .query_row(
-            "SELECT COALESCE(MAX(id),0) FROM agent_stream_outbox",
-            [],
-            |row| row.get(0),
-        )
-        .context("read latest stream cursor")
+    super::latest_outbox_id(&*pool.get()?)
 }

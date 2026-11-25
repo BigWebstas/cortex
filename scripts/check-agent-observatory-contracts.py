@@ -104,10 +104,10 @@ if validator_for_ref(SCHEMA_URI, "#/$defs/Page", check_formats=False).is_valid(b
 
 rust = (CONTRACTS / "agent-observatory-types.rs").read_text()
 typescript = (CONTRACTS / "agent-observatory-types.ts").read_text()
-for token in ("pub run: AgentRunSummary", "pub commit_summary: Option<GitCommitSummary>", "pub payload: Option<JsonObject>", "pub data: JsonObject", "pub freshness: RunFreshness", "pub struct BackfillJob"):
+for token in ("pub run: AgentRunSummary", "pub commit_summary: Option<GitCommitSummary>", "pub payload_json: Option<String>", "pub data: JsonObject", "pub freshness: RunFreshness", "pub struct BackfillJob"):
     if token not in rust:
         fail(f"Rust contract missing {token}")
-for token in ("run: AgentRunSummary", "commit_summary: GitCommitSummary | null", "payload: TPayload | null", "data: TData", "freshness: RunFreshness", "export interface BackfillJob"):
+for token in ("run: AgentRunSummary", "commit_summary: GitCommitSummary | null", "payload_json: string | null", "data: TData", "freshness: RunFreshness", "export interface BackfillJob"):
     if token not in typescript:
         fail(f"TypeScript contract missing {token}")
 

@@ -255,6 +255,8 @@ Returns the run summary plus actors, current/historical worktree relations, even
 
 Run keys are path-segment percent encoded. Errors: `404 run_not_found`.
 
+Run objects carry numeric relations as decimal strings (`primary_worktree_id`, `parent_run_id`, `previous_run_id`) and freshness lanes as the JSON-encoded string `freshness_json`. Events carry `payload_json`, a JSON-encoded string.
+
 ### 7.7 GET /api/agent-runs/{run_key}/events
 
 Filters:
@@ -334,6 +336,8 @@ Reset reasons:
 - `subscriber_lagged`
 - `projection_version_changed`
 
+A reset ends the connection. History expires by outbox row age (`outbox_retention_secs`). A subscriber lags when its queue stays full for 30 seconds. Each connection ends after 15 minutes and the client resumes with `Last-Event-ID`. `projection_version_changed` is not yet emitted because the projection version cannot change while the server runs.
+
 ### 7.10 GET /api/agent-observatory/status
 
 Returns feature flags, schema/projection versions, projector cursors/lag, Git watcher counts/errors/overflow, stream clients/outbox bounds, OTLP signal counts/freshness, embedded web revision, Aurora revision, and warnings.
@@ -365,7 +369,7 @@ All endpoints use:
 }
 ```
 
-Required status/code mappings:
+Only `error` is guaranteed. Query and cursor failures place the machine code or a short description in `error`; the other fields are optional.\n\nRequired status/code mappings:
 
 | HTTP | Code |
 | ---: | --- |

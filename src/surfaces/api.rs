@@ -115,6 +115,7 @@ pub(super) const API_SURFACE_SPECS: &[SurfaceSpec] = &[
         Read
     ),
     api!("/api/agent-runs/{run_key}", Sessions, Canonical, Read),
+    api!("/api/agent-runs/stream", Sessions, Canonical, Read),
     api!(
         "/api/agent-runs",
         Sessions,

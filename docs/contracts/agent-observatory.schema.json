@@ -134,8 +134,8 @@
       "required": [
         "id", "run_key", "native_session_id", "tool", "hostname", "status", "status_reason",
         "status_observed_at", "started_at", "last_activity_at", "ended_at", "transcript_path",
-        "primary_worktree", "primary_branch", "start_head_sha", "current_head_sha", "parent_run_key",
-        "previous_run_key", "provider_tool", "event_count", "error_count", "freshness"
+        "primary_worktree_id", "primary_branch", "start_head_sha", "current_head_sha", "parent_run_id",
+        "previous_run_id", "provider_tool", "event_count", "error_count", "freshness_json"
       ],
       "properties": {
         "id": { "$ref": "#/$defs/Id" },
@@ -144,8 +144,8 @@
         "tool": { "type": "string", "minLength": 1, "maxLength": 128 },
         "provider_tool": { "type": ["string", "null"], "maxLength": 128 },
         "hostname": { "type": "string", "minLength": 1, "maxLength": 255 },
-        "parent_run_key": { "type": ["string", "null"], "maxLength": 1024 },
-        "previous_run_key": { "type": ["string", "null"], "maxLength": 1024 },
+        "parent_run_id": { "anyOf": [{ "$ref": "#/$defs/Id" }, { "type": "null" }] },
+        "previous_run_id": { "anyOf": [{ "$ref": "#/$defs/Id" }, { "type": "null" }] },
         "status": { "$ref": "#/$defs/RunStatus" },
         "status_reason": { "type": "string", "maxLength": 1024 },
         "status_observed_at": { "$ref": "#/$defs/Timestamp" },
@@ -153,13 +153,13 @@
         "last_activity_at": { "$ref": "#/$defs/Timestamp" },
         "ended_at": { "anyOf": [{ "$ref": "#/$defs/Timestamp" }, { "type": "null" }] },
         "transcript_path": { "type": ["string", "null"], "maxLength": 4096 },
-        "primary_worktree": { "anyOf": [{ "$ref": "#/$defs/Worktree" }, { "type": "null" }] },
+        "primary_worktree_id": { "anyOf": [{ "$ref": "#/$defs/Id" }, { "type": "null" }] },
         "primary_branch": { "type": ["string", "null"], "maxLength": 1024 },
         "start_head_sha": { "anyOf": [{ "$ref": "#/$defs/Sha" }, { "type": "null" }] },
         "current_head_sha": { "anyOf": [{ "$ref": "#/$defs/Sha" }, { "type": "null" }] },
         "event_count": { "type": "integer", "minimum": 0 },
         "error_count": { "type": "integer", "minimum": 0 },
-        "freshness": { "$ref": "#/$defs/RunFreshness" }
+        "freshness_json": { "type": "string", "description": "JSON-encoded freshness lanes as stored by the projector" }
       }
     },
     "GitCommitSummary": {
@@ -202,7 +202,7 @@
       "required": [
         "id", "event_key", "run_key", "observed_at", "ingested_at", "kind", "source_kind",
         "actor_key", "worktree_id", "commit_sha", "source_id", "source_log_id", "provider_sequence",
-        "trace_id", "span_id", "severity", "title", "summary", "payload", "content_scrubbed"
+        "trace_id", "span_id", "severity", "title", "summary", "payload_json", "content_scrubbed"
       ],
       "properties": {
         "id": { "$ref": "#/$defs/Id" },
@@ -223,7 +223,7 @@
         "severity": { "type": "string", "maxLength": 32 },
         "title": { "type": "string", "maxLength": 512 },
         "summary": { "type": "string", "maxLength": 8192 },
-        "payload": { "type": ["object", "null"] },
+        "payload_json": { "type": ["string", "null"], "description": "JSON-encoded payload, present only with include=payload" },
         "content_scrubbed": { "type": "boolean" }
       }
     },

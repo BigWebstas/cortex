@@ -15,9 +15,9 @@ use super::*;
 #[test]
 fn documented_rest_route_count_matches_router_registrations() {
     let binding_count = crate::surfaces::api_bindings().count();
-    assert_eq!(binding_count, 101, "update the documented API denominator");
-    assert!(include_str!("../docs/api.md").contains("101 method/path bindings total"));
-    assert!(include_str!("../docs/architecture.md").contains("(101 method/path bindings)"));
+    assert_eq!(binding_count, 102, "update the documented API denominator");
+    assert!(include_str!("../docs/api.md").contains("102 method/path bindings total"));
+    assert!(include_str!("../docs/architecture.md").contains("(102 method/path bindings)"));
 }
 
 /// Build the router for a test, layering a `MockConnectInfo` so handlers
@@ -4378,5 +4378,130 @@ async fn observatory_repository_detail_and_runs_are_scoped_and_404_when_unknown(
     ] {
         let (status, _) = get_json(app.clone(), uri, Some("secret")).await;
         assert_eq!(status, axum::http::StatusCode::BAD_REQUEST, "{uri}");
+    }
+}
+
+async fn first_chunks(response: axum::response::Response, count: usize) -> String {
+    let mut body = response.into_body().into_data_stream();
+    let mut text = String::new();
+    for _ in 0..count {
+        let chunk = tokio::time::timeout(
+            std::time::Duration::from_secs(5),
+            futures_util::StreamExt::next(&mut body),
+        )
+        .await
+        .expect("stream chunk before timeout")
+        .expect("stream still open")
+        .unwrap();
+        text.push_str(std::str::from_utf8(&chunk).unwrap());
+    }
+    text
+}
+
+#[tokio::test]
+async fn observatory_stream_is_bearer_protected_and_resumes_from_last_event_id() {
+    let (state, pool, _dir) = test_state(Some("secret".into()));
+    seed_observatory_run_detail(&pool);
+    pool.get()
+        .unwrap()
+        .execute_batch(
+            "INSERT INTO agent_stream_outbox(outbox_key,run_id,stream_event_type,expires_at,payload_json)
+             VALUES ('a',3,'run.created','2999-01-01T00:00:00Z','{}'),
+                    ('b',3,'run.event','2999-01-01T00:00:00Z','{}');",
+        )
+        .unwrap();
+    let app = test_router(state);
+
+    // A token in the URL neither authenticates nor is accepted.
+    let (status, _) = get_json(app.clone(), "/api/agent-runs/stream?token=secret", None).await;
+    assert_eq!(status, axum::http::StatusCode::UNAUTHORIZED);
+    for (uri, code) in [
+        ("/api/agent-runs/stream?token=secret", None),
+        ("/api/agent-runs/stream?after=abc", Some("invalid_cursor")),
+        ("/api/agent-runs/stream?after=-1", Some("invalid_cursor")),
+    ] {
+        let (status, body) = get_json(app.clone(), uri, Some("secret")).await;
+        assert_eq!(status, axum::http::StatusCode::BAD_REQUEST, "{uri}");
+        if let Some(code) = code {
+            assert_eq!(body["error"], code);
+        }
+    }
+
+    let response = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri("/api/agent-runs/stream?after=0")
+                .header(header::AUTHORIZATION, "Bearer secret")
+                .header("last-event-id", "1")
+                .body(axum::body::Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(response.status(), axum::http::StatusCode::OK);
+    let headers = response.headers();
+    assert_eq!(headers[header::CONTENT_TYPE], "text/event-stream");
+    assert_eq!(headers[header::CACHE_CONTROL], "no-cache, no-store");
+    assert_eq!(headers["x-accel-buffering"], "no");
+    let text = first_chunks(response, 2).await;
+    assert!(text.starts_with("retry: 3000"), "{text}");
+    assert!(text.contains("id: 2\nevent: run.event\ndata: {"), "{text}");
+    assert!(!text.contains("run.created"), "{text}");
+}
+
+#[tokio::test]
+async fn observatory_stream_rejects_clients_beyond_the_configured_limit() {
+    let (state, _pool, _dir) = test_state(Some("secret".into()));
+    let config = crate::config::AgentObservatoryStreamConfig {
+        max_clients: 1,
+        ..Default::default()
+    };
+    let app = test_router(state.with_observatory_stream(&config));
+    let held = get_response(app.clone(), "/api/agent-runs/stream", Some("secret")).await;
+    assert_eq!(held.status(), axum::http::StatusCode::OK);
+    let (status, body) = get_json(app.clone(), "/api/agent-runs/stream", Some("secret")).await;
+    assert_eq!(status, axum::http::StatusCode::TOO_MANY_REQUESTS);
+    assert_eq!(body["error"], "stream_client_limit");
+    drop(held);
+    let response = get_response(app, "/api/agent-runs/stream", Some("secret")).await;
+    assert_eq!(response.status(), axum::http::StatusCode::OK);
+}
+
+/// The published schema must keep matching the objects the server returns.
+#[tokio::test]
+async fn observatory_run_and_event_fields_match_the_contract_schema() {
+    let (state, pool, _dir) = test_state(Some("secret".into()));
+    seed_observatory_run_detail(&pool);
+    let app = test_router(state);
+    let schema: serde_json::Value = serde_json::from_str(include_str!(
+        "../docs/contracts/agent-observatory.schema.json"
+    ))
+    .unwrap();
+    let uri = "/api/agent-runs/host%3Acodex%3Aabc";
+    let (_, detail) = get_json(app.clone(), uri, Some("secret")).await;
+    let (_, events) = get_json(app, &format!("{uri}/events"), Some("secret")).await;
+    for (name, value) in [
+        ("AgentRunDetail", &detail),
+        ("AgentRun", &detail["run"]),
+        ("AgentActor", &detail["actors"][0]),
+        ("Evidence", &detail["worktree_evidence"][0]),
+        ("AgentRunEvent", &events["events"][0]),
+    ] {
+        let mut expected = schema["$defs"][name]["required"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|field| field.as_str().unwrap().to_string())
+            .collect::<Vec<_>>();
+        expected.sort();
+        let mut actual = value
+            .as_object()
+            .unwrap()
+            .keys()
+            .cloned()
+            .collect::<Vec<_>>();
+        actual.sort();
+        assert_eq!(actual, expected, "{name}");
     }
 }

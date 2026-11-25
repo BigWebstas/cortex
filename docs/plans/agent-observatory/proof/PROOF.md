@@ -688,3 +688,16 @@ RED: three new API tests failed while the single repository, repository runs and
 GREEN: added those routes through `CortexService` in sibling modules, and moved the repository worktrees route there so unknown repositories return 404
 PROOF: bearer, unknown-query, 404, scoping, bounded related records and latest-commit cases pass
 NOTES: remaining contract differences: `include=worktrees` and repository reconcile status are absent from the OpenAPI schema and not implemented; run objects keep the existing list shape (`primary_worktree_id`, `parent_run_id`, `freshness_json`) instead of schema `AgentRun`; errors lack the contract `message` field
+
+## AO-059 to AO-061 Outbox replay, authenticated stream, reset and backpressure
+commit/worktree SHA: `fix/web-workspace-evidence` (pre-commit proof)
+RED: not recorded; the tests and implementation were written together
+GREEN: added `GET /api/agent-runs/stream` with replay then polling delivery, a bounded per-client queue, client slots, and reset events
+PROOF: `cargo test --lib --locked observatory` passed 150 tests, including replay boundaries, filters, unknown and expired cursors, replay cap, a lagging client beside a fast one, slot release, payload cap, bearer, and `Last-Event-ID` cases
+NOTES: expiry uses outbox `created_at` against `outbox_retention_secs`, not `expires_at`; delivery polls the database instead of using a broadcast channel; `projection_version_changed` is not emitted; nothing prunes the outbox (AO-097). The lag case uses a 500-event burst, not the planned 10,000
+
+## Contract alignment with existing response shapes
+commit/worktree SHA: `fix/web-workspace-evidence` (pre-commit proof)
+GREEN: run, event and error definitions now describe the shapes the server returns
+PROOF: `scripts/check-agent-observatory-contracts.sh` passed, and an API test compares returned fields with the schema for run detail, run, actor, evidence and event
+NOTES: worktree and telemetry definitions were not compared

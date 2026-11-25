@@ -7,6 +7,7 @@ pub mod git_attribution;
 pub mod identity;
 pub mod lifecycle;
 pub mod projector;
+pub mod stream;
 
 /// Schema version reached after all planned Agent Observatory migrations.
 ///

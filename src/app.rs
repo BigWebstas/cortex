@@ -1,5 +1,6 @@
 pub mod agent_observatory;
 pub mod agent_observatory_detail;
+mod agent_observatory_stream;
 mod correlate;
 pub mod cursor;
 mod error;

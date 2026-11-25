@@ -601,7 +601,8 @@ async fn serve_mcp() -> Result<()> {
             )
             .map_err(|error| anyhow::anyhow!("invalid stream cursor configuration: {error:?}"))?,
             api::resolved_integration_profile(&runtime.config)?,
-        )?;
+        )?
+        .with_observatory_stream(&runtime.config.agent_observatory.stream);
         app = app.merge(api::router(api_state)?);
         info!("Non-MCP API mounted under /api");
     }
