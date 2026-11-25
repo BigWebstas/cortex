@@ -1,7 +1,8 @@
-// Verifies that vendored Aurora source matches web/aurora.lock.json. Offline.
+// Verifies vendored Aurora source against web/aurora.lock.json and checks that
+// feature code does not rebuild Aurora primitives. Offline.
 import { createHash } from "node:crypto"
-import { existsSync, readFileSync } from "node:fs"
-import { isAbsolute, relative, resolve } from "node:path"
+import { existsSync, readdirSync, readFileSync } from "node:fs"
+import { isAbsolute, join, relative, resolve } from "node:path"
 import { fileURLToPath, pathToFileURL } from "node:url"
 
 const FULL_SHA = /^[0-9a-f]{40}$/
@@ -51,7 +52,9 @@ export function auditLock(lock, root) {
     if (createHash("sha256").update(content).digest("hex") !== file.installed_sha256) {
       problems.push(`hash mismatch: ${file.path}`)
     }
-    if (!file.binary && MUTABLE_URL.test(content.toString("utf8"))) problems.push(`mutable URL in ${file.path}`)
+    if (!file.binary && MUTABLE_URL.test(content.toString("utf8"))) {
+      problems.push(`mutable URL in ${file.path}`)
+    }
     if (file.locally_modified && !file.modification_note) {
       problems.push(`modified without a note: ${file.path}`)
     }
@@ -59,10 +62,82 @@ export function auditLock(lock, root) {
   return problems
 }
 
+const VENDORED = ["components/aurora", "components/ui/aurora", "lib/aurora"]
+const FEATURES = ["app", "src", "components"]
+const PRIMITIVES = [
+  "Avatar", "Badge", "Banner", "Breadcrumb", "Button", "Card", "DataTable", "Dialog", "EmptyState",
+  "Input", "Pagination", "ScrollArea", "Select", "Separator", "Sheet", "Skeleton", "Spinner",
+  "Tabs", "Textarea", "Timeline", "Toast", "Tooltip",
+].join("|")
+const DEFINITION = new RegExp(`\\b(?:function|const|class)\\s+(${PRIMITIVES})\\b`, "g")
+const IMPORT = /\bimport\s+(?:type\s+)?([^;'"]+?)\s+from\s+["']([^"']+)["']/g
+const RAW_ELEMENT = /<(button|input|select|textarea|table|dialog)(?=[\s/>])/g
+const AURORA_SOURCE = /(^|\/)components\/(ui\/)?aurora\//
+
+function sourceFiles(root, directory) {
+  const absolute = join(root, directory)
+  if (!existsSync(absolute)) return []
+  return readdirSync(absolute, { withFileTypes: true }).flatMap((entry) => {
+    const path = `${directory}/${entry.name}`
+    if (entry.isDirectory()) return sourceFiles(root, path)
+    return /\.(tsx?|jsx?|css)$/.test(entry.name) ? [path] : []
+  })
+}
+
+function featureProblems(source) {
+  const found = new Set()
+  for (const [, name] of source.matchAll(DEFINITION)) found.add(`parallel-definition ${name}`)
+  for (const [, clause, from] of source.matchAll(IMPORT)) {
+    // Packages are covered by the dependency lock; only local modules can shadow Aurora.
+    if (!/^(\.|@\/)/.test(from) || AURORA_SOURCE.test(from)) continue
+    for (const name of clause.match(new RegExp(`\\b(${PRIMITIVES})\\b`, "g")) ?? []) {
+      found.add(`parallel-import ${name} from ${from}`)
+    }
+  }
+  for (const [, element] of source.matchAll(RAW_ELEMENT)) found.add(`raw-element <${element}>`)
+  return [...found]
+}
+
+/**
+ * Finds hand-built primitives in feature code and files the lock does not track.
+ * Exceptions are per file and must say why, with an issue or plan task.
+ * @returns {string[]}
+ */
+export function auditComponents(lock, root, exceptions) {
+  const problems = []
+  const tracked = new Set((lock.files ?? []).map((file) => file.path))
+  const excused = new Map(exceptions.map((entry) => [entry.path, entry]))
+  const used = new Set()
+  const files = [...new Set([...FEATURES, ...VENDORED].flatMap((dir) => sourceFiles(root, dir)))]
+  for (const path of files.sort()) {
+    if (VENDORED.some((dir) => path.startsWith(`${dir}/`))) {
+      if (!tracked.has(path)) problems.push(`${path}: untracked file in a vendored directory`)
+      continue
+    }
+    if (tracked.has(path) || !/\.(tsx|jsx|ts|js)$/.test(path) || path === "app/app.js") continue
+    const found = featureProblems(readFileSync(join(root, path), "utf8"))
+    if (found.length === 0) continue
+    const entry = excused.get(path)
+    if (!entry) {
+      problems.push(...found.map((problem) => `${path}: ${problem}`))
+      continue
+    }
+    used.add(path)
+    if (!entry.reason || !entry.reference) {
+      problems.push(`exception needs a reason and a reference: ${path}`)
+    }
+  }
+  for (const path of excused.keys()) {
+    if (!used.has(path)) problems.push(`stale exception: ${path}`)
+  }
+  return problems
+}
+
 if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {
   const root = fileURLToPath(new URL("..", import.meta.url))
   const lock = JSON.parse(readFileSync(resolve(root, "aurora.lock.json"), "utf8"))
-  const problems = auditLock(lock, root)
+  const exceptions = JSON.parse(readFileSync(resolve(root, "aurora.allow.json"), "utf8"))
+  const problems = [...auditLock(lock, root), ...auditComponents(lock, root, exceptions)]
   for (const problem of problems) console.error(problem)
   console.log(problems.length ? `Aurora audit failed: ${problems.length} problem(s).` : "Aurora audit passed.")
   process.exit(problems.length ? 1 : 0)

@@ -650,3 +650,34 @@ commit/worktree SHA: `fix/web-workspace-evidence` (pre-commit proof)
 GREEN: vendored four WOFF2 files from the pinned Aurora revision with OFL texts from a pinned `google/fonts` commit; `aurora-fonts.css` now uses `/app/fonts/aurora/` and records the local modification
 PROOF: the audit finds no mutable URL in installed files
 NOTES: the offline browser font and network check waits until the styles are imported. The audit also verifies `vendored_assets` presence and hashes
+
+## AO-073 Implement Aurora component-import audit
+commit/worktree SHA: `fix/web-workspace-evidence` (pre-commit proof)
+RED: `pnpm --dir web vitest run tests/aurora-components.test.ts` failed because `auditComponents` did not exist
+GREEN: the audit reports local definitions or imports of primitive names, raw form and table elements, untracked files in vendored directories, and unreferenced or stale exceptions
+PROOF: negative fixtures are rejected and the committed source passes; `pnpm --dir web test` runs both audits
+NOTES: five investigation components are excused until AO-096 in `web/aurora.allow.json`. The exceptions cite the plan task, not an upstream Aurora issue. `.github/workflows/ci.yml` does not appear to run the web tests
+
+## AO-074 Build asset manifest generator
+commit/worktree SHA: `fix/web-workspace-evidence` (pre-commit proof)
+RED: new fixtures for commented-out scripts, `>` inside attributes, newline normalisation, ordering and the Aurora revision failed against the existing generator
+GREEN: inline scripts are found with parse5 8.0.1, ordering is locale-independent, and `aurora_revision` comes from `web/aurora.lock.json`
+PROOF: unit tests pass
+
+## AO-075 and AO-076 Rust asset table and router
+commit/worktree SHA: `fix/web-workspace-evidence` (pre-commit proof)
+GREEN: already present in `build.rs` and `src/web_app.rs`; byte-order sorting was fixed in `65235aaf`
+PROOF: `cargo test --lib --locked web_app::` passed 8 tests
+NOTES: unknown non-asset paths under `/app/` fall back to the investigation page, which existing tests expect; the task text asks only for traversal rejection. The missing-manifest failure message was not re-verified
+
+## AO-077 Add route-specific strict CSP
+commit/worktree SHA: `fix/web-workspace-evidence` (pre-commit proof)
+GREEN: per-page script hashes were already emitted; added `web/e2e/shell.spec.ts` against the production router
+PROOF: `/app/`, `/app/investigate/` and `/app/agents/` load on both browser projects with no console error or failed response, and `script-src` has no `unsafe-` source
+
+## AO-078 Add reproducible build and real-binary shell smoke (partial)
+commit/worktree SHA: `fix/web-workspace-evidence` (pre-commit proof)
+RED: two builds with the same `SOURCE_DATE_EPOCH` produced different manifests
+GREEN: the Next build ID is derived from the build inputs
+PROOF: two clean builds produced identical manifests; the container `web-builder` stage passed
+NOTES: the release-binary smoke with a temporary database is not run, and CI does not appear to run the web unit or Playwright tests

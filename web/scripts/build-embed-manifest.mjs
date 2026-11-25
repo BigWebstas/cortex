@@ -2,6 +2,7 @@ import { createHash } from "node:crypto"
 import { copyFileSync, lstatSync, mkdirSync, readdirSync, readFileSync, realpathSync, writeFileSync } from "node:fs"
 import { dirname, extname, posix, relative, resolve, sep } from "node:path"
 import { fileURLToPath } from "node:url"
+import { parse } from "parse5"
 
 const scriptPath = fileURLToPath(import.meta.url)
 const webRoot = resolve(dirname(scriptPath), "..")
@@ -26,34 +27,30 @@ export function sha256Base64(data) {
   return `sha256-${createHash("sha256").update(data).digest("base64")}`
 }
 
+const SCRIPT_TYPES = new Set(["", "text/javascript", "application/javascript", "module"])
+
 export function extractInlineScriptHashes(html) {
-  const hashes = []
-  const seen = new Set()
-  const scriptRegex = /<script\b([^>]*)>([\s\S]*?)<\/script>/gi
-  let match
-  while ((match = scriptRegex.exec(html)) !== null) {
-    const attrs = match[1] ?? ""
-    const body = match[2] ?? ""
-    // External scripts (<script src="...">) are covered by script-src 'self'.
-    if (/\bsrc\s*=/i.test(attrs)) continue
-    // Non-executable data scripts (application/json, application/ld+json) do not execute.
-    const typeMatch = /\btype\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/i.exec(attrs)
-    const scriptType = (typeMatch?.[1] ?? typeMatch?.[2] ?? typeMatch?.[3] ?? "").trim().toLowerCase()
-    if (
-      scriptType &&
-      scriptType !== "text/javascript" &&
-      scriptType !== "application/javascript" &&
-      scriptType !== "module"
-    ) {
-      continue
+  const hashes = new Set()
+  const visit = (node) => {
+    if (node.tagName === "script") {
+      const attribute = (name) => node.attrs.find((item) => item.name === name)?.value
+      const type = (attribute("type") ?? "").trim().toLowerCase()
+      // External scripts are covered by script-src 'self'; data blocks do not execute.
+      if (attribute("src") === undefined && SCRIPT_TYPES.has(type)) {
+        const body = node.childNodes.map((child) => child.value ?? "").join("")
+        hashes.add(sha256Base64(Buffer.from(body, "utf8")))
+      }
     }
-    const hash = sha256Base64(Buffer.from(body, "utf8"))
-    if (!seen.has(hash)) {
-      seen.add(hash)
-      hashes.push(hash)
-    }
+    for (const child of node.childNodes ?? []) visit(child)
+    if (node.content) visit(node.content)
   }
-  return hashes
+  visit(parse(html))
+  return [...hashes]
+}
+
+// Code-unit order, independent of locale and matching Rust's byte order for ASCII paths.
+function compareText(a, b) {
+  return a < b ? -1 : a > b ? 1 : 0
 }
 
 export function requestPathForFile(relPosixPath) {
@@ -80,7 +77,7 @@ export function contentTypeForFile(relPosixPath) {
 
 function collectFiles(rootDir, currentDir, realRoot, files) {
   const entries = readdirSync(currentDir, { withFileTypes: true }).sort((a, b) =>
-    a.name.localeCompare(b.name),
+    compareText(a.name, b.name),
   )
   for (const entry of entries) {
     if (entry.name === "cortex-assets.json") continue
@@ -118,6 +115,7 @@ export function buildEmbedManifest({
   vendorCytoscape = defaultVendorCytoscape,
   packageJsonPath = resolve(webRoot, "package.json"),
   sourceDateEpoch = process.env.SOURCE_DATE_EPOCH,
+  auroraLockPath = resolve(webRoot, "aurora.lock.json"),
 } = {}) {
   const absOutDir = resolve(outDir)
   if (vendorCytoscape) {
@@ -129,7 +127,7 @@ export function buildEmbedManifest({
   const realRoot = realpathSync(absOutDir)
   const files = []
   collectFiles(absOutDir, absOutDir, realRoot, files)
-  files.sort((a, b) => a.relPosix.localeCompare(b.relPosix))
+  files.sort((a, b) => compareText(a.relPosix, b.relPosix))
 
   const pkg = JSON.parse(readFileSync(packageJsonPath, "utf8"))
   const nextVersion = pkg?.dependencies?.next ?? "unknown"
@@ -158,12 +156,12 @@ export function buildEmbedManifest({
     }
   })
 
-  assets.sort((a, b) => a.request_path.localeCompare(b.request_path))
+  assets.sort((a, b) => compareText(a.request_path, b.request_path))
 
   const manifest = {
     schema: 1,
     source_revision: process.env.CORTEX_WEB_REVISION ?? "workspace",
-    aurora_revision: "local-aurora-tokens",
+    aurora_revision: JSON.parse(readFileSync(auroraLockPath, "utf8")).registry.source_revision,
     next_version: nextVersion,
     generated_at: generatedAt,
     assets,
