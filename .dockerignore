@@ -29,6 +29,8 @@ docs/contracts/*
 !docs/contracts/agent-observatory-types.ts
 scripts
 !scripts/backup.sh
+!scripts/managed-lifecycle.sh
+!scripts/restore-backup.sh
 specs
 *.md
 !README.md

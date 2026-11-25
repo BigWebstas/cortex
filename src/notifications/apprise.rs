@@ -97,7 +97,7 @@ impl AppriseClient {
         body: &str,
         notify_type: NotifyType,
     ) -> Result<NotifyResponse, AppriseError> {
-        let safe_title = escape_for_notification(title);
+        let safe_title = super::text::readable_title(title);
         let safe_body = escape_for_notification(body);
 
         let endpoint = format!("{}/notify/", self.base_url);
@@ -156,17 +156,10 @@ impl AppriseClient {
     }
 }
 
-/// Prepare log-derived text for notification delivery.
-///
-/// The payload is sent with `"format": "text"`, so Apprise escapes the body for
-/// each target itself (HTML for Telegram, plain for Gotify). Pre-escaping here
-/// double-escaped: Telegram showed the literal text `&lt;n&gt;` instead of the
-/// `<n>`, `<hex>`, `<ip>`, `<path>` placeholders the error-signature normalizer
-/// emits. `&`, `<` and `>` are therefore passed through untouched.
-///
-/// - Replaces `@` with `＠` (U+FF20) to prevent mention injection.
+/// Prepare literal text for push delivery, including older pre-escaped rows.
+/// Mention neutralization is retained; JSON is presented as readable fields.
 pub fn escape_for_notification(s: &str) -> String {
-    s.replace('@', "＠")
+    super::text::readable_text(s)
 }
 
 #[cfg(test)]

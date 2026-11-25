@@ -39,9 +39,9 @@ COPY build.rs ./
 COPY src/ src/
 COPY web/ web/
 COPY --from=web-builder /app/web/out web/out
-COPY docker-compose.yml docker-compose.prod.yml ./
+COPY docker-compose.yml docker-compose.prod.yml .env.example ./
 COPY config/Dockerfile config/Dockerfile
-COPY scripts/backup.sh scripts/backup.sh
+COPY scripts/backup.sh scripts/managed-lifecycle.sh scripts/restore-backup.sh scripts/
 RUN --mount=type=cache,id=cortex-cargo-registry-v2,target=/usr/local/cargo/registry,sharing=locked \
     --mount=type=cache,id=cortex-cargo-git-v2,target=/usr/local/cargo/git,sharing=locked \
     --mount=type=cache,id=cortex-cargo-target-v2,target=/app/target,sharing=locked \
