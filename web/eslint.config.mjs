@@ -12,5 +12,9 @@ export default defineConfig([
     "test-results/**",
     "app/app.js",
     "vendor/**",
+    // Vendored Aurora source; integrity is checked by scripts/audit-aurora.mjs.
+    "components/aurora/**",
+    "components/ui/aurora/**",
+    "lib/aurora/**",
   ]),
 ])

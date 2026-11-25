@@ -31,7 +31,12 @@ export function auditLock(lock, root) {
 
   const files = lock.files ?? []
   if (files.length === 0) problems.push("no installed files are recorded")
-  for (const file of files) {
+  const assets = (lock.vendored_assets ?? []).map((asset) => ({
+    path: asset.path,
+    installed_sha256: asset.sha256,
+    binary: true,
+  }))
+  for (const file of [...files, ...assets]) {
     const target = resolve(root, file.path)
     const inside = relative(root, target)
     if (inside.startsWith("..") || isAbsolute(inside)) {
@@ -46,7 +51,7 @@ export function auditLock(lock, root) {
     if (createHash("sha256").update(content).digest("hex") !== file.installed_sha256) {
       problems.push(`hash mismatch: ${file.path}`)
     }
-    if (MUTABLE_URL.test(content.toString("utf8"))) problems.push(`mutable URL in ${file.path}`)
+    if (!file.binary && MUTABLE_URL.test(content.toString("utf8"))) problems.push(`mutable URL in ${file.path}`)
     if (file.locally_modified && !file.modification_note) {
       problems.push(`modified without a note: ${file.path}`)
     }

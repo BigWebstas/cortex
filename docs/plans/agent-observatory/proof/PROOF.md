@@ -637,3 +637,16 @@ RED: same missing-module failure for `scripts/resolve-aurora.mjs`
 GREEN: added an explicit `--refresh` resolver that walks only `@aurora/` dependencies and records sorted per-item hashes
 PROOF: cycle/repeat fixtures resolve once; two refreshes of revision `19e87c6b26dd32eb3be3db4d8b6fb32c99cd1d6d` produced byte-identical locks with 53 items
 NOTES: registry requests two `lucide-react` ranges (`^0.487.0`, `^1.21.0`); font CSS references `aurora.tootie.tv`; `aurora-base` lists no files of its own. Resolve before and during AO-070 to AO-072
+
+## AO-070 and AO-071 Install Aurora primitives, blocks and AI elements
+commit/worktree SHA: `fix/web-workspace-evidence` (pre-commit proof)
+RED: `node web/scripts/audit-aurora.mjs` reported `no installed files are recorded`
+GREEN: ran shadcn 4.13.1 in an isolated staging directory against the pinned raw URLs, then copied 59 files and recorded source and installed hashes
+REGRESSION: audit, typecheck, lint, 30 unit tests, static build, 14 browser tests and the container `web-builder` stage passed
+NOTES: `lucide-react` is pinned to 1.21.0 over the `^0.487.0` range most items request (typecheck passes; icons are not yet rendered). The `aurora-log-viewer` demo page is omitted and recorded in the lock. `web/lib/utils.ts` is local because the components import it and the install did not produce it. Vendored TypeScript is excluded from ESLint. Styles are vendored but not yet imported. The AO-071 usage mapping for each top-level item is still outstanding
+
+## AO-072 Vendor Aurora fonts and remove runtime font URLs (partial)
+commit/worktree SHA: `fix/web-workspace-evidence` (pre-commit proof)
+GREEN: vendored four WOFF2 files from the pinned Aurora revision with OFL texts from a pinned `google/fonts` commit; `aurora-fonts.css` now uses `/app/fonts/aurora/` and records the local modification
+PROOF: the audit finds no mutable URL in installed files
+NOTES: the offline browser font and network check waits until the styles are imported. The audit also verifies `vendored_assets` presence and hashes

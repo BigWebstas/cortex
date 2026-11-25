@@ -833,5 +833,601 @@
       ]
     }
   ],
-  "files": []
+  "files": [
+    {
+      "path": "components/aurora-components.css",
+      "item": "aurora-components",
+      "source_path": "registry/aurora/styles/aurora-components.css",
+      "source_sha256": "9b4d63cb21ea84a6b6c07cc63470fa05bc03121bb000c46119521623884e9179",
+      "installed_sha256": "6bbe42b67c0eeb6baa2a43674099a0815f43beb936b256adf865eb8bd957b0d9",
+      "locally_modified": false,
+      "modification_note": null
+    },
+    {
+      "path": "components/aurora-fonts.css",
+      "item": "aurora-fonts",
+      "source_path": "registry/aurora/styles/aurora-fonts.css",
+      "source_sha256": "4a02e5ec53633550d63b0831af17a02b086ce1528cf867c655a112f1de87910c",
+      "installed_sha256": "b4bb9610c154f5366f480ceb2a102c18287d214153efe9c5a692491420cc49c3",
+      "locally_modified": true,
+      "modification_note": "Font URLs point at vendored files under /app/fonts/aurora (AO-072)."
+    },
+    {
+      "path": "components/aurora.css",
+      "item": "aurora-tokens",
+      "source_path": "registry/aurora/styles/aurora.css",
+      "source_sha256": "26fba79fe6e0bca6e8c519664c01ff310f0c38865217dbe943ed2943d1431ac8",
+      "installed_sha256": "16cf32d9a3762554c0e9c19e8d44becd440afe6a4ce075f779df5972a9b985ce",
+      "locally_modified": false,
+      "modification_note": null
+    },
+    {
+      "path": "components/aurora/ai/action.tsx",
+      "item": "aurora-ai-elements",
+      "source_path": "registry/aurora/blocks/ai/elements/action.tsx",
+      "source_sha256": "01c6f25cfa4d767aab9ff21331e9a53e4a16b1f84f61f402652304921319483b",
+      "installed_sha256": "01c6f25cfa4d767aab9ff21331e9a53e4a16b1f84f61f402652304921319483b",
+      "locally_modified": false,
+      "modification_note": null
+    },
+    {
+      "path": "components/aurora/ai/actions.tsx",
+      "item": "aurora-ai-elements",
+      "source_path": "registry/aurora/blocks/ai/elements/actions.tsx",
+      "source_sha256": "dd4c195206209b3d5a141c64e52dadba709e9807055dc8d8de4e4c8fb740d22e",
+      "installed_sha256": "dd4c195206209b3d5a141c64e52dadba709e9807055dc8d8de4e4c8fb740d22e",
+      "locally_modified": false,
+      "modification_note": null
+    },
+    {
+      "path": "components/aurora/ai/agent.tsx",
+      "item": "aurora-ai-agent",
+      "source_path": "registry/aurora/blocks/ai/elements/agent.tsx",
+      "source_sha256": "1cb710b10011f89b94d93bf72223445e955a0101a515a133a853524fd42a8178",
+      "installed_sha256": "2b9de301d9a8670ea973c1650dac3d29a5943d29bbf9a71aced9f6f7aadbbe6e",
+      "locally_modified": false,
+      "modification_note": null
+    },
+    {
+      "path": "components/aurora/ai/ai-elements.tsx",
+      "item": "aurora-ai-elements",
+      "source_path": "registry/aurora/blocks/ai/elements/ai-elements.tsx",
+      "source_sha256": "58d9d0606839832407e7ee83d9de1b0db3b84f22da423b5a3d07fe02cb8c223b",
+      "installed_sha256": "58d9d0606839832407e7ee83d9de1b0db3b84f22da423b5a3d07fe02cb8c223b",
+      "locally_modified": false,
+      "modification_note": null
+    },
+    {
+      "path": "components/aurora/ai/branch.tsx",
+      "item": "aurora-ai-branch",
+      "source_path": "registry/aurora/blocks/ai/elements/branch.tsx",
+      "source_sha256": "c92da10ea7ad3e1e64199926a07387d82600a7bdfbe55f830af45ac7ee42db64",
+      "installed_sha256": "f6091d952477a30fbf2b535dfa76b9523192ed648f5bf223e8e04ed2c08833be",
+      "locally_modified": false,
+      "modification_note": null
+    },
+    {
+      "path": "components/aurora/ai/canvas.tsx",
+      "item": "aurora-ai-elements",
+      "source_path": "registry/aurora/blocks/ai/elements/canvas.tsx",
+      "source_sha256": "46e21a296e2c6feee12e5accbc4329a78237d057a3d28ee86827e2b44df9faab",
+      "installed_sha256": "46e21a296e2c6feee12e5accbc4329a78237d057a3d28ee86827e2b44df9faab",
+      "locally_modified": false,
+      "modification_note": null
+    },
+    {
+      "path": "components/aurora/ai/commit.tsx",
+      "item": "aurora-ai-commit",
+      "source_path": "registry/aurora/blocks/ai/elements/commit.tsx",
+      "source_sha256": "44031497f49f5995f7a48d2ca699d2fc06fd96188dd9f9acb258f01ba76da7cc",
+      "installed_sha256": "e03fa3755190ae163c650014b938fdc3e0a41a35cf562ebdd29d42b93580b782",
+      "locally_modified": false,
+      "modification_note": null
+    },
+    {
+      "path": "components/aurora/ai/conversation.tsx",
+      "item": "aurora-ai-conversation",
+      "source_path": "registry/aurora/blocks/ai/elements/conversation.tsx",
+      "source_sha256": "4d81269f125d7393e203782f92a7aac8ed2b285948e29f2d8d8bc85af06db64a",
+      "installed_sha256": "0206b07a6ca37a93956fdfe3ca9c0bc653cbbe8d80e5415126af2d0af5b9fbdb",
+      "locally_modified": false,
+      "modification_note": null
+    },
+    {
+      "path": "components/aurora/ai/core.tsx",
+      "item": "aurora-ai-elements",
+      "source_path": "registry/aurora/blocks/ai/elements/core.tsx",
+      "source_sha256": "137e4211713ce03f6b8951d977654b35a6a054bb5836fe46faa2d8d164ee04b9",
+      "installed_sha256": "9a33068313e88df4382c1f7a9ff4b96181526d5bfc45eff894b58d826eb4149f",
+      "locally_modified": false,
+      "modification_note": null
+    },
+    {
+      "path": "components/aurora/ai/message.tsx",
+      "item": "aurora-ai-message",
+      "source_path": "registry/aurora/blocks/ai/elements/message.tsx",
+      "source_sha256": "e484e799e2c340d0e37e551a35867732adfdbdb593c190eca259444bff7a1338",
+      "installed_sha256": "4706c8f22beea98e041f97dcd1e4a1221ef02ed75074976a79bd7d007cefbe80",
+      "locally_modified": false,
+      "modification_note": null
+    },
+    {
+      "path": "components/aurora/ai/plan.tsx",
+      "item": "aurora-ai-plan",
+      "source_path": "registry/aurora/blocks/ai/elements/plan.tsx",
+      "source_sha256": "d8d089ff785e40014434cc17211e52d7ab65d2275910aeb970e79c9557b23d48",
+      "installed_sha256": "d8d089ff785e40014434cc17211e52d7ab65d2275910aeb970e79c9557b23d48",
+      "locally_modified": false,
+      "modification_note": null
+    },
+    {
+      "path": "components/aurora/ai/source.tsx",
+      "item": "aurora-ai-elements",
+      "source_path": "registry/aurora/blocks/ai/elements/source.tsx",
+      "source_sha256": "255a2447107c6e13f2f7e9b43418ef9e21db92473d9df4da54548b6674f1fbfc",
+      "installed_sha256": "dc611facb99e9b45cc2035b3882dd7ae7624c5cac4c7f5b32ea084d94dc9cb55",
+      "locally_modified": false,
+      "modification_note": null
+    },
+    {
+      "path": "components/aurora/ai/sources.tsx",
+      "item": "aurora-ai-elements",
+      "source_path": "registry/aurora/blocks/ai/elements/sources.tsx",
+      "source_sha256": "720735ba32dd10424e84dc7d2fc49dc536ddd1c1b96455134537040cf1d3cb89",
+      "installed_sha256": "f62fff041974fb788b8fd85b52a3dec9f19c46d23f124a4124017329fdf67ea5",
+      "locally_modified": false,
+      "modification_note": null
+    },
+    {
+      "path": "components/aurora/ai/task.tsx",
+      "item": "aurora-ai-task",
+      "source_path": "registry/aurora/blocks/ai/elements/task.tsx",
+      "source_sha256": "f09980bb9b2e494b66022853a174fa5c0352cba4c8958dea358bdeb80d6671d8",
+      "installed_sha256": "59dedeb7b72fe6a9400c7b594e59ac0aa4f641e3f873e3c96531236af14e989d",
+      "locally_modified": false,
+      "modification_note": null
+    },
+    {
+      "path": "components/aurora/ai/tool.tsx",
+      "item": "aurora-ai-tool",
+      "source_path": "registry/aurora/blocks/ai/elements/tool.tsx",
+      "source_sha256": "aff470cd57d6f4b3ed39684b0c8ca59642e61fa6410b280311adcb4b00aaf80d",
+      "installed_sha256": "fbb7c643d6d0839938f1d2cca4db165d169d370200e6869440acb9b80ae664bc",
+      "locally_modified": false,
+      "modification_note": null
+    },
+    {
+      "path": "components/aurora/code-block.tsx",
+      "item": "aurora-code-block",
+      "source_path": "registry/aurora/blocks/workspace/code-block/code-block.tsx",
+      "source_sha256": "fe03fc2d730a32d0dae4884a2fb6379a16ca4965a51141e55b190b6e0975c8c3",
+      "installed_sha256": "e5842eb2771b0c9756c0d859ba79351aa05928e99e8785122fcb104fe98cde23",
+      "locally_modified": false,
+      "modification_note": null
+    },
+    {
+      "path": "components/aurora/code-editor.tsx",
+      "item": "aurora-code-editor",
+      "source_path": "registry/aurora/blocks/files/code-editor/code-editor.tsx",
+      "source_sha256": "6b590b02f3aab24666b9f42b77ca09d8ec85c4a4e3a5e071655a6f7bf0b551a4",
+      "installed_sha256": "3d736b22135c2225eade31fc1d46ddc9eb7372aae8c92865e1ec0c6b51c15cb4",
+      "locally_modified": false,
+      "modification_note": null
+    },
+    {
+      "path": "components/aurora/code-workspace.tsx",
+      "item": "aurora-code-workspace",
+      "source_path": "registry/aurora/blocks/files/code-workspace/code-workspace.tsx",
+      "source_sha256": "3d81be870bd652123e473f82f354a12618e15f0917fddb0c6f72556bc407d166",
+      "installed_sha256": "a3b68bd24fa871dff442b15d5fdcdb7f300794ee21fb58f7dff2c9ceff173b6d",
+      "locally_modified": false,
+      "modification_note": null
+    },
+    {
+      "path": "components/aurora/command-palette.tsx",
+      "item": "aurora-command-palette",
+      "source_path": "registry/aurora/blocks/workspace/command-palette/command-palette.tsx",
+      "source_sha256": "21c4b728d40607ee7f64a33884a02ed55abaa9a51c16441a7239331586cf604a",
+      "installed_sha256": "4af5b9083d919637c3f84f01630699cf4a236a3660027486750e89c9e23e4e12",
+      "locally_modified": false,
+      "modification_note": null
+    },
+    {
+      "path": "components/aurora/file-tree.tsx",
+      "item": "aurora-file-tree",
+      "source_path": "registry/aurora/blocks/files/file-tree/file-tree.tsx",
+      "source_sha256": "e62aa737a520597b0b4d8a5e8a91918495f86029656f2c15acc2b3861920440c",
+      "installed_sha256": "3ff399b7d7f985c59bf4981e4962568e9e17f1a7fd31ec3089d5413238426cc4",
+      "locally_modified": false,
+      "modification_note": null
+    },
+    {
+      "path": "components/aurora/prompt-input.tsx",
+      "item": "aurora-prompt-input",
+      "source_path": "registry/aurora/blocks/ai/prompt-input/prompt-input.tsx",
+      "source_sha256": "6ab684285ffd85b2828961a473af8bfcbafe721df291e09183536d45e9dbc28b",
+      "installed_sha256": "81f39175c5ce49fd1888249fd71f52e54abd30c36cac57f74f7989eaa1c7822b",
+      "locally_modified": false,
+      "modification_note": null
+    },
+    {
+      "path": "components/aurora/sidebar.tsx",
+      "item": "aurora-sidebar-block",
+      "source_path": "registry/aurora/blocks/workspace/sidebar/sidebar.tsx",
+      "source_sha256": "3c27245d182899bd37cdda1dafaf54179c9f3567e3254e4d09d62e933baf8938",
+      "installed_sha256": "810a558825a2450a433f7f265aca57c96516aff47ba2acdb82380deba868b3fd",
+      "locally_modified": false,
+      "modification_note": null
+    },
+    {
+      "path": "components/aurora/terminal.tsx",
+      "item": "aurora-terminal-block",
+      "source_path": "registry/aurora/blocks/navigation/terminal/terminal.tsx",
+      "source_sha256": "b14d949b996c5bdcf9bdbc6d45be0591a5b70ca2870a8804704801ace3726abd",
+      "installed_sha256": "42072f78c734a960a14d49cfec0753ac044af168d9b01b0237b67e0d1d0dc6f1",
+      "locally_modified": false,
+      "modification_note": null
+    },
+    {
+      "path": "components/aurora/thinking.tsx",
+      "item": "aurora-thinking",
+      "source_path": "registry/aurora/blocks/ai/thinking/thinking.tsx",
+      "source_sha256": "7328091e600dd9ac6cf57a93ca2eee94f2bcab7f0893eaee6d7d156faca6f7b2",
+      "installed_sha256": "c06493172845c295b8598f7055dd1f5677ba43ca0a068f24adb2a4870c94e9ce",
+      "locally_modified": false,
+      "modification_note": null
+    },
+    {
+      "path": "components/aurora/tokenizer.ts",
+      "item": "aurora-code-editor",
+      "source_path": "registry/aurora/blocks/files/code-editor/tokenizer.ts",
+      "source_sha256": "446abef19f451314132da44c2de885e1c238bd7cb31a1966657863c4020887a6",
+      "installed_sha256": "446abef19f451314132da44c2de885e1c238bd7cb31a1966657863c4020887a6",
+      "locally_modified": false,
+      "modification_note": null
+    },
+    {
+      "path": "components/aurora/tool-calls-model.ts",
+      "item": "aurora-tool-calls",
+      "source_path": "registry/aurora/blocks/ai/tool-calls/tool-calls-model.ts",
+      "source_sha256": "a078fe86e9982c009971c13461b77a84f7a920ac6ee699bf6416562f784e698a",
+      "installed_sha256": "a078fe86e9982c009971c13461b77a84f7a920ac6ee699bf6416562f784e698a",
+      "locally_modified": false,
+      "modification_note": null
+    },
+    {
+      "path": "components/aurora/tool-calls.tsx",
+      "item": "aurora-tool-calls",
+      "source_path": "registry/aurora/blocks/ai/tool-calls/tool-calls.tsx",
+      "source_sha256": "af958ebe28e6d2fceed093956206fdbed5e8d180bd42fdb09138dc5c76d378f9",
+      "installed_sha256": "b6cadae5f558240c1c7fe4a405b132c340af8caa4e22f165dddf197d1c1d1dee",
+      "locally_modified": false,
+      "modification_note": null
+    },
+    {
+      "path": "components/ui/aurora/avatar.tsx",
+      "item": "aurora-avatar",
+      "source_path": "registry/aurora/ui/avatar.tsx",
+      "source_sha256": "6bc917be8ad5bf85a435caa1623c6c44df8671a44a26cd563a82961ebfd4a106",
+      "installed_sha256": "6bc917be8ad5bf85a435caa1623c6c44df8671a44a26cd563a82961ebfd4a106",
+      "locally_modified": false,
+      "modification_note": null
+    },
+    {
+      "path": "components/ui/aurora/badge.tsx",
+      "item": "aurora-badge",
+      "source_path": "registry/aurora/ui/badge.tsx",
+      "source_sha256": "057e4e93691db894656247a305be5b8d9954c8befc175da2ead0ceeb63287a22",
+      "installed_sha256": "057e4e93691db894656247a305be5b8d9954c8befc175da2ead0ceeb63287a22",
+      "locally_modified": false,
+      "modification_note": null
+    },
+    {
+      "path": "components/ui/aurora/banner.tsx",
+      "item": "aurora-banner",
+      "source_path": "registry/aurora/ui/banner.tsx",
+      "source_sha256": "b8461b36dd3d8df91cbf4bda6d09e9820c105e75ad6cb512fa2eb4255643d99d",
+      "installed_sha256": "b8461b36dd3d8df91cbf4bda6d09e9820c105e75ad6cb512fa2eb4255643d99d",
+      "locally_modified": false,
+      "modification_note": null
+    },
+    {
+      "path": "components/ui/aurora/breadcrumb.tsx",
+      "item": "aurora-breadcrumb",
+      "source_path": "registry/aurora/ui/breadcrumb.tsx",
+      "source_sha256": "565165f7b972f9a6bd6483e0c016b27ce629e1445bcb17c7f4ceaaab34a6ba61",
+      "installed_sha256": "565165f7b972f9a6bd6483e0c016b27ce629e1445bcb17c7f4ceaaab34a6ba61",
+      "locally_modified": false,
+      "modification_note": null
+    },
+    {
+      "path": "components/ui/aurora/button.tsx",
+      "item": "aurora-button",
+      "source_path": "registry/aurora/ui/button.tsx",
+      "source_sha256": "e333efeccd831a79170e78ac1a66876f669bc47886eb40021955e472ff43811b",
+      "installed_sha256": "e333efeccd831a79170e78ac1a66876f669bc47886eb40021955e472ff43811b",
+      "locally_modified": false,
+      "modification_note": null
+    },
+    {
+      "path": "components/ui/aurora/card.tsx",
+      "item": "aurora-card",
+      "source_path": "registry/aurora/ui/card.tsx",
+      "source_sha256": "9765f410c2b1be559590f2ea1735beaa02805b575e0da03467368aab99490fc0",
+      "installed_sha256": "7ab746f88cc1206616f3033bec4809b08e7e837e50a8196b4ebd524c3cd38139",
+      "locally_modified": false,
+      "modification_note": null
+    },
+    {
+      "path": "components/ui/aurora/chart.tsx",
+      "item": "aurora-chart",
+      "source_path": "registry/aurora/ui/chart.tsx",
+      "source_sha256": "35c51379f8c4e9fd3c5aa3c895e01bccf9de405c85fc26eccd1578d70dac0931",
+      "installed_sha256": "35c51379f8c4e9fd3c5aa3c895e01bccf9de405c85fc26eccd1578d70dac0931",
+      "locally_modified": false,
+      "modification_note": null
+    },
+    {
+      "path": "components/ui/aurora/data-table.tsx",
+      "item": "aurora-data-table",
+      "source_path": "registry/aurora/ui/data-table.tsx",
+      "source_sha256": "9823f5bcba6e810dd1020a0b0d8188a1a2953740e1b2b0fc615444714c03c565",
+      "installed_sha256": "58a592f26214efaed595569bf9bb3b162476129e1d96e9cf588eb7e028efca98",
+      "locally_modified": false,
+      "modification_note": null
+    },
+    {
+      "path": "components/ui/aurora/dialog.tsx",
+      "item": "aurora-dialog",
+      "source_path": "registry/aurora/ui/dialog.tsx",
+      "source_sha256": "e68744ceae7f24d9b4bd1f81dcc838c4c9e6995131321d87ede232e7e9bfa578",
+      "installed_sha256": "e68744ceae7f24d9b4bd1f81dcc838c4c9e6995131321d87ede232e7e9bfa578",
+      "locally_modified": false,
+      "modification_note": null
+    },
+    {
+      "path": "components/ui/aurora/empty-state.tsx",
+      "item": "aurora-empty-state",
+      "source_path": "registry/aurora/ui/empty-state.tsx",
+      "source_sha256": "2dcf4399ecc73fb1c082c8001fd44bd30c7f0ef7f77c14221a15f35c51983a40",
+      "installed_sha256": "2dcf4399ecc73fb1c082c8001fd44bd30c7f0ef7f77c14221a15f35c51983a40",
+      "locally_modified": false,
+      "modification_note": null
+    },
+    {
+      "path": "components/ui/aurora/filter-bar.tsx",
+      "item": "aurora-filter-bar",
+      "source_path": "registry/aurora/ui/filter-bar.tsx",
+      "source_sha256": "e58e2e6ebe83b5e9b9c539750b6cdaf5399969c9aa9c588b7f0b5097c7924dfa",
+      "installed_sha256": "e58e2e6ebe83b5e9b9c539750b6cdaf5399969c9aa9c588b7f0b5097c7924dfa",
+      "locally_modified": false,
+      "modification_note": null
+    },
+    {
+      "path": "components/ui/aurora/input.tsx",
+      "item": "aurora-input",
+      "source_path": "registry/aurora/ui/input.tsx",
+      "source_sha256": "68748c1317450cc1127c80cd305f21a42f78cc5d33db310b924f33b6197929da",
+      "installed_sha256": "68748c1317450cc1127c80cd305f21a42f78cc5d33db310b924f33b6197929da",
+      "locally_modified": false,
+      "modification_note": null
+    },
+    {
+      "path": "components/ui/aurora/pagination.tsx",
+      "item": "aurora-pagination",
+      "source_path": "registry/aurora/ui/pagination.tsx",
+      "source_sha256": "0802c68b6d05f5690d29782fd84758e2e04bea5b67a5afca5cd05a8cba944e32",
+      "installed_sha256": "442d87ac655ff48b08788703f4b0a4a207952ad756d24da4ec51de9b1a439bde",
+      "locally_modified": false,
+      "modification_note": null
+    },
+    {
+      "path": "components/ui/aurora/resizable-panels.tsx",
+      "item": "aurora-resizable-panels",
+      "source_path": "registry/aurora/ui/resizable-panels.tsx",
+      "source_sha256": "b6966a5fe515740cfeb67e6725a0390f42e704dc3dffece4d4dd8f048c36fdff",
+      "installed_sha256": "b6966a5fe515740cfeb67e6725a0390f42e704dc3dffece4d4dd8f048c36fdff",
+      "locally_modified": false,
+      "modification_note": null
+    },
+    {
+      "path": "components/ui/aurora/scroll-area.tsx",
+      "item": "aurora-scroll-area",
+      "source_path": "registry/aurora/ui/scroll-area.tsx",
+      "source_sha256": "69f47c2fe7477827b3f858df12b6f894aeaec1019af893e80079047a1b168ef7",
+      "installed_sha256": "69f47c2fe7477827b3f858df12b6f894aeaec1019af893e80079047a1b168ef7",
+      "locally_modified": false,
+      "modification_note": null
+    },
+    {
+      "path": "components/ui/aurora/select.tsx",
+      "item": "aurora-select",
+      "source_path": "registry/aurora/ui/select.tsx",
+      "source_sha256": "3afa6470341d1c459942d03a05d0111213d9339bef6a0b464dc0a87fc8cd623f",
+      "installed_sha256": "befff6ef34f4556d2fb5338e3d9e7320dbfbafd3e16f6ad7fa34928d6eeb7ab0",
+      "locally_modified": false,
+      "modification_note": null
+    },
+    {
+      "path": "components/ui/aurora/separator.tsx",
+      "item": "aurora-separator",
+      "source_path": "registry/aurora/ui/separator.tsx",
+      "source_sha256": "d952c3a409112b9a274479ff70975f6569f62fe438ba2834883005cab767c711",
+      "installed_sha256": "d952c3a409112b9a274479ff70975f6569f62fe438ba2834883005cab767c711",
+      "locally_modified": false,
+      "modification_note": null
+    },
+    {
+      "path": "components/ui/aurora/sheet.tsx",
+      "item": "aurora-sheet",
+      "source_path": "registry/aurora/ui/sheet.tsx",
+      "source_sha256": "9aa59def9f0c402c7c59aece73ae7c6418c3e8691db85a258798b80514c09231",
+      "installed_sha256": "29e03891269c3386339a569c5d772295536312dc6b46c8a0e776210b87970c38",
+      "locally_modified": false,
+      "modification_note": null
+    },
+    {
+      "path": "components/ui/aurora/skeleton.tsx",
+      "item": "aurora-skeleton",
+      "source_path": "registry/aurora/ui/skeleton.tsx",
+      "source_sha256": "71d766c3f5b0e06396659ae46ff3dbf75f2c6f7217b981d59836047b6c4e9c91",
+      "installed_sha256": "71d766c3f5b0e06396659ae46ff3dbf75f2c6f7217b981d59836047b6c4e9c91",
+      "locally_modified": false,
+      "modification_note": null
+    },
+    {
+      "path": "components/ui/aurora/spinner.tsx",
+      "item": "aurora-spinner",
+      "source_path": "registry/aurora/ui/spinner.tsx",
+      "source_sha256": "4a9f911691b6cc5e8011cbfc443269114d6e9a85e4b681201900bbfedc179f64",
+      "installed_sha256": "4a9f911691b6cc5e8011cbfc443269114d6e9a85e4b681201900bbfedc179f64",
+      "locally_modified": false,
+      "modification_note": null
+    },
+    {
+      "path": "components/ui/aurora/status-indicator.tsx",
+      "item": "aurora-status-indicator",
+      "source_path": "registry/aurora/ui/status-indicator.tsx",
+      "source_sha256": "761117bd158bf3f50a6722566191daa150812a52ac7328e2ea9f2417fb1ca86d",
+      "installed_sha256": "761117bd158bf3f50a6722566191daa150812a52ac7328e2ea9f2417fb1ca86d",
+      "locally_modified": false,
+      "modification_note": null
+    },
+    {
+      "path": "components/ui/aurora/tabs.tsx",
+      "item": "aurora-tabs",
+      "source_path": "registry/aurora/ui/tabs.tsx",
+      "source_sha256": "2d1a4cb613d37d5288689624a9aa06bd7eaf0ea550ffba7cc9663dbc0c9724e3",
+      "installed_sha256": "2d1a4cb613d37d5288689624a9aa06bd7eaf0ea550ffba7cc9663dbc0c9724e3",
+      "locally_modified": false,
+      "modification_note": null
+    },
+    {
+      "path": "components/ui/aurora/textarea.tsx",
+      "item": "aurora-textarea",
+      "source_path": "registry/aurora/ui/textarea.tsx",
+      "source_sha256": "3aa3ecd9efd2e1b2917fee73c81b3023489fe4b23a9e49bad8796bedac05c71e",
+      "installed_sha256": "3aa3ecd9efd2e1b2917fee73c81b3023489fe4b23a9e49bad8796bedac05c71e",
+      "locally_modified": false,
+      "modification_note": null
+    },
+    {
+      "path": "components/ui/aurora/timeline.tsx",
+      "item": "aurora-timeline",
+      "source_path": "registry/aurora/ui/timeline.tsx",
+      "source_sha256": "735c7091b2b7ff65076ccafa9d392650e1e000a904859c788afd8590c4c4fe49",
+      "installed_sha256": "735c7091b2b7ff65076ccafa9d392650e1e000a904859c788afd8590c4c4fe49",
+      "locally_modified": false,
+      "modification_note": null
+    },
+    {
+      "path": "components/ui/aurora/toast.tsx",
+      "item": "aurora-toast",
+      "source_path": "registry/aurora/ui/toast.tsx",
+      "source_sha256": "739b7bb1b24e1f16ca54ec176812c3d9f7b79232b7b29bd75bf6b2bff0e97259",
+      "installed_sha256": "739b7bb1b24e1f16ca54ec176812c3d9f7b79232b7b29bd75bf6b2bff0e97259",
+      "locally_modified": false,
+      "modification_note": null
+    },
+    {
+      "path": "components/ui/aurora/tooltip.tsx",
+      "item": "aurora-tooltip",
+      "source_path": "registry/aurora/ui/tooltip.tsx",
+      "source_sha256": "db20d7a3f2af1f8402836210399343f1e4fd4bc00b32a0c35c623bfa12c2fee8",
+      "installed_sha256": "5111ac35f505f88f6391455c9d54bc91ea21ac07d6335803f1c464517ba2b345",
+      "locally_modified": false,
+      "modification_note": null
+    },
+    {
+      "path": "lib/aurora/portal-container.tsx",
+      "item": "aurora-portal-container",
+      "source_path": "registry/aurora/lib/portal-container.tsx",
+      "source_sha256": "01408c53e9e24fe7ef801e0af4237d67b134dad98609c832547261557005ce22",
+      "installed_sha256": "01408c53e9e24fe7ef801e0af4237d67b134dad98609c832547261557005ce22",
+      "locally_modified": false,
+      "modification_note": null
+    },
+    {
+      "path": "lib/aurora/safe-url.ts",
+      "item": "aurora-safe-url",
+      "source_path": "registry/aurora/lib/safe-url.ts",
+      "source_sha256": "0c867957ffa60db600c3b262918277ca09bd42f7604210fa63e2e032c9538023",
+      "installed_sha256": "ba8da0d4e9b46f334ba01f9a678d4e0318a77db77de4f5082fe812206fc3b8fd",
+      "locally_modified": false,
+      "modification_note": null
+    },
+    {
+      "path": "lib/aurora/use-clipboard.ts",
+      "item": "aurora-clipboard",
+      "source_path": "registry/aurora/lib/use-clipboard.ts",
+      "source_sha256": "8bba2e707071a6092a315eb02b0f87e32121b362e2dd1132761a47cc883c9e9a",
+      "installed_sha256": "8bba2e707071a6092a315eb02b0f87e32121b362e2dd1132761a47cc883c9e9a",
+      "locally_modified": false,
+      "modification_note": null
+    }
+  ],
+  "omitted_files": [
+    {
+      "item": "aurora-log-viewer",
+      "target": "app/aurora/log-viewer/page.tsx",
+      "reason": "Starter demo page; it would add an unplanned route. The log viewer composition is built in the application instead."
+    }
+  ],
+  "vendored_assets": [
+    {
+      "path": "public/fonts/aurora/manrope-var.woff2",
+      "source_url": "https://raw.githubusercontent.com/dinglebear-ai/aurora/19e87c6b26dd32eb3be3db4d8b6fb32c99cd1d6d/public/fonts/aurora/manrope-var.woff2",
+      "source_revision": "19e87c6b26dd32eb3be3db4d8b6fb32c99cd1d6d",
+      "sha256": "a30ddcd349703aff7464c34bef3fffdff405ee50c113440d7c8693c02d210972"
+    },
+    {
+      "path": "public/fonts/aurora/OFL-manrope.txt",
+      "source_url": "https://raw.githubusercontent.com/google/fonts/6ebe737e44fd64ee736bbc6feed6136a6dbfd222/ofl/manrope/OFL.txt",
+      "source_revision": "6ebe737e44fd64ee736bbc6feed6136a6dbfd222",
+      "sha256": "58172e0c0fac2cda8a37b348164bb55e44b0e69051e557e92b1d3f6910141f7b"
+    },
+    {
+      "path": "public/fonts/aurora/inter-var.woff2",
+      "source_url": "https://raw.githubusercontent.com/dinglebear-ai/aurora/19e87c6b26dd32eb3be3db4d8b6fb32c99cd1d6d/public/fonts/aurora/inter-var.woff2",
+      "source_revision": "19e87c6b26dd32eb3be3db4d8b6fb32c99cd1d6d",
+      "sha256": "3100e775e8616cd2611beecfa23a4263d7037586789b43f035236a2e6fbd4c62"
+    },
+    {
+      "path": "public/fonts/aurora/OFL-inter.txt",
+      "source_url": "https://raw.githubusercontent.com/google/fonts/6ebe737e44fd64ee736bbc6feed6136a6dbfd222/ofl/inter/OFL.txt",
+      "source_revision": "6ebe737e44fd64ee736bbc6feed6136a6dbfd222",
+      "sha256": "5b9321a4298cfeb6b34354164a1c3afc3db114569984c502b9b35d988fd58c57"
+    },
+    {
+      "path": "public/fonts/aurora/noto-sans-var.woff2",
+      "source_url": "https://raw.githubusercontent.com/dinglebear-ai/aurora/19e87c6b26dd32eb3be3db4d8b6fb32c99cd1d6d/public/fonts/aurora/noto-sans-var.woff2",
+      "source_revision": "19e87c6b26dd32eb3be3db4d8b6fb32c99cd1d6d",
+      "sha256": "51ca196f49a33e79e7870ff88ebd2829a3f627a51e7d690986618f0e7ad2b52d"
+    },
+    {
+      "path": "public/fonts/aurora/OFL-notosans.txt",
+      "source_url": "https://raw.githubusercontent.com/google/fonts/6ebe737e44fd64ee736bbc6feed6136a6dbfd222/ofl/notosans/OFL.txt",
+      "source_revision": "6ebe737e44fd64ee736bbc6feed6136a6dbfd222",
+      "sha256": "cee9892f9f0cc8fe882c9e9537ee6a89621d86ee7ceaf70b02e2b2b1c25c061a"
+    },
+    {
+      "path": "public/fonts/aurora/jetbrains-mono-var.woff2",
+      "source_url": "https://raw.githubusercontent.com/dinglebear-ai/aurora/19e87c6b26dd32eb3be3db4d8b6fb32c99cd1d6d/public/fonts/aurora/jetbrains-mono-var.woff2",
+      "source_revision": "19e87c6b26dd32eb3be3db4d8b6fb32c99cd1d6d",
+      "sha256": "18be452724bfdc236c074ca94a249a7f41a86752c7d04ab258ce9ed5651f6a7e"
+    },
+    {
+      "path": "public/fonts/aurora/OFL-jetbrainsmono.txt",
+      "source_url": "https://raw.githubusercontent.com/google/fonts/6ebe737e44fd64ee736bbc6feed6136a6dbfd222/ofl/jetbrainsmono/OFL.txt",
+      "source_revision": "6ebe737e44fd64ee736bbc6feed6136a6dbfd222",
+      "sha256": "b2fe5e8987594e9ffd1d2ca52a2f5d73eb8335243893c5d6254b5ad69269591d"
+    }
+  ],
+  "consumer": {
+    "shadcn_version": "4.13.1",
+    "next_version": "16.4.5",
+    "react_version": "19.2.7",
+    "tailwind_version": "4.3.3",
+    "lucide_react_version": "1.21.0"
+  }
 }

@@ -116,6 +116,20 @@ describe("Aurora lock audit", () => {
     ])
   })
 
+  it("rejects an altered or missing vendored asset", () => {
+    const lock = {
+      ...validLock(),
+      vendored_assets: [
+        { path, sha256: hash("different") },
+        { path: "public/fonts/missing.woff2", sha256: hash(source) },
+      ],
+    }
+    expect(auditLock(lock, root)).toEqual([
+      `hash mismatch: ${path}`,
+      "missing file: public/fonts/missing.woff2",
+    ])
+  })
+
   it("rejects missing files, paths outside the project and unexplained edits", () => {
     const lock = validLock()
     lock.files = [
