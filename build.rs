@@ -50,7 +50,21 @@ fn generate_from_manifest(web_out_dir: &Path, manifest_path: &Path) -> String {
          const EMBEDDED_ASSETS: &[EmbeddedAsset] = &[\n",
     );
 
-    for item in assets {
+    // `find_asset` binary-searches by byte order. The manifest is written with
+    // locale-aware ordering, which places `-` and `_` differently, so re-sort.
+    let mut ordered = assets
+        .iter()
+        .map(|item| {
+            let request_path = item
+                .field("request_path")
+                .and_then(JsonValue::as_str)
+                .expect("asset.request_path");
+            (request_path, item)
+        })
+        .collect::<Vec<_>>();
+    ordered.sort_by(|a, b| a.0.cmp(b.0));
+
+    for (_, item) in ordered {
         let request_path = item
             .field("request_path")
             .and_then(JsonValue::as_str)

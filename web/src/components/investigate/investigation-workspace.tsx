@@ -14,6 +14,7 @@ import {
 } from "../../contracts/investigation"
 import {
   type GraphElements,
+  EMPTY_GRAPH,
   type GraphNodeData,
   SEED_GRAPH,
   graphFromHosts,
@@ -106,12 +107,19 @@ export function InvestigationWorkspace() {
     return { generation, signal: controller.signal }
   }, [])
 
-  const clearSessionState = useCallback((reasonCard: StatusCardMessage) => {
+  const resetEvidenceInspector = useCallback(() => {
+    setSelection({ kind: "none" })
+    setSelectedProof(null)
+    setProofError(null)
+    setProofLoadingId(null)
+    setIsGraphBusy(false)
+  }, [])
+
+  // Drops everything loaded with the current token and invalidates in-flight requests.
+  const resetSessionData = useCallback(() => {
     abortRef.current?.abort()
     abortRef.current = null
     ++generationRef.current
-    setBearerToken("")
-    setTokenInput("")
     setServerVersion("--")
     setSchemaVersion("Schema --")
     setHostCount("--")
@@ -124,20 +132,27 @@ export function InvestigationWorkspace() {
     setLatestHosts([])
     setLatestLogs([])
     setActiveAppGraph(null)
-    setGraphElements(SEED_GRAPH)
+    setGraphElements(EMPTY_GRAPH)
     setClaims([])
     setActiveClaimIndex(null)
     setOpenQuestions([])
     setNextQueries([])
     setCandidates([])
     setMetadata(null)
-    setSelection({ kind: "none" })
-    setSelectedProof(null)
-    setProofError(null)
+    resetEvidenceInspector()
     setAskState("idle")
-    setLogStatus({ label: "Preview", tone: "neutral" })
-    setStatusCard(reasonCard)
-  }, [])
+    setLogStatus({ label: "Disconnected", tone: "neutral" })
+  }, [resetEvidenceInspector])
+
+  const clearSessionState = useCallback(
+    (reasonCard: StatusCardMessage) => {
+      resetSessionData()
+      setBearerToken("")
+      setTokenInput("")
+      setStatusCard(reasonCard)
+    },
+    [resetSessionData],
+  )
 
   const handleUnauthorizedIfNeeded = useCallback(
     (error: unknown): boolean => {
@@ -158,6 +173,8 @@ export function InvestigationWorkspace() {
   const refreshWithToken = useCallback(
     async (token: string) => {
       const { generation, signal } = beginRequest()
+      setAskState("idle")
+      resetEvidenceInspector()
       if (!token) {
         setStatusCard({
           tone: "warn",
@@ -224,8 +241,7 @@ export function InvestigationWorkspace() {
         setNextQueries([])
         setCandidates([])
         setMetadata(null)
-        setSelection({ kind: "none" })
-        setSelectedProof(null)
+        resetEvidenceInspector()
         setStatusCard({
           tone: "success",
           badge: "Connected",
@@ -245,7 +261,7 @@ export function InvestigationWorkspace() {
         })
       }
     },
-    [beginRequest, handleUnauthorizedIfNeeded],
+    [beginRequest, handleUnauthorizedIfNeeded, resetEvidenceInspector],
   )
 
   const runAsk = useCallback(
@@ -264,8 +280,7 @@ export function InvestigationWorkspace() {
 
       const { generation, signal } = beginRequest()
       setAskState("pending")
-      setSelectedProof(null)
-      setProofError(null)
+      resetEvidenceInspector()
       try {
         const envelope = await askInvestigation(
           bearerToken,
@@ -278,6 +293,7 @@ export function InvestigationWorkspace() {
         )
         if (generation !== generationRef.current) return
 
+        resetEvidenceInspector()
         const { result, metadata: envMeta } = envelope
         setMetadata(envMeta)
         setLatestLogs(result.logs ?? [])
@@ -324,7 +340,14 @@ export function InvestigationWorkspace() {
         })
       }
     },
-    [bearerToken, beginRequest, handleUnauthorizedIfNeeded, hostHint, sinceHint],
+    [
+      bearerToken,
+      beginRequest,
+      handleUnauthorizedIfNeeded,
+      hostHint,
+      resetEvidenceInspector,
+      sinceHint,
+    ],
   )
 
   const handleTokenSubmit = (event: FormEvent<HTMLFormElement>) => {
@@ -332,6 +355,7 @@ export function InvestigationWorkspace() {
     const nextToken = tokenInput.trim()
     setBearerToken(nextToken)
     setTokenInput("")
+    resetSessionData()
     void refreshWithToken(nextToken)
   }
 
@@ -352,8 +376,10 @@ export function InvestigationWorkspace() {
 
       setIsGraphBusy(true)
       setProofError(null)
+      const generation = generationRef.current
       try {
         const envelope = await getGraphAround(bearerToken, query)
+        if (generation !== generationRef.current) return
         setMetadata(envelope.metadata)
         setActiveAppGraph((prev) => {
           const merged = mergeAppGraphs(prev, envelope.result)
@@ -361,11 +387,12 @@ export function InvestigationWorkspace() {
           return merged
         })
       } catch (error) {
+        if (generation !== generationRef.current) return
         if (!handleUnauthorizedIfNeeded(error)) {
           setProofError(error instanceof Error ? error.message : String(error))
         }
       } finally {
-        setIsGraphBusy(false)
+        if (generation === generationRef.current) setIsGraphBusy(false)
       }
     },
     [bearerToken, handleUnauthorizedIfNeeded],
@@ -383,17 +410,20 @@ export function InvestigationWorkspace() {
 
       setIsGraphBusy(true)
       setProofError(null)
+      const generation = generationRef.current
       try {
         const envelope = await explainGraphEntity(bearerToken, query)
+        if (generation !== generationRef.current) return
         setMetadata(envelope.metadata)
         setActiveAppGraph(envelope.result)
         setGraphElements(graphFromInvestigation(envelope.result))
       } catch (error) {
+        if (generation !== generationRef.current) return
         if (!handleUnauthorizedIfNeeded(error)) {
           setProofError(error instanceof Error ? error.message : String(error))
         }
       } finally {
-        setIsGraphBusy(false)
+        if (generation === generationRef.current) setIsGraphBusy(false)
       }
     },
     [bearerToken, handleUnauthorizedIfNeeded],
@@ -404,8 +434,10 @@ export function InvestigationWorkspace() {
       if (!bearerToken) return
       setIsGraphBusy(true)
       setProofError(null)
+      const generation = generationRef.current
       try {
         const envelope = await explainGraphEntity(bearerToken, { entity_id: candidate.id })
+        if (generation !== generationRef.current) return
         setMetadata(envelope.metadata)
         setActiveAppGraph(envelope.result)
         setGraphElements(graphFromInvestigation(envelope.result))
@@ -423,11 +455,12 @@ export function InvestigationWorkspace() {
           },
         })
       } catch (error) {
+        if (generation !== generationRef.current) return
         if (!handleUnauthorizedIfNeeded(error)) {
           setProofError(error instanceof Error ? error.message : String(error))
         }
       } finally {
-        setIsGraphBusy(false)
+        if (generation === generationRef.current) setIsGraphBusy(false)
       }
     },
     [bearerToken, handleUnauthorizedIfNeeded],
@@ -438,15 +471,18 @@ export function InvestigationWorkspace() {
       if (!bearerToken) return
       setProofLoadingId(evidenceId)
       setProofError(null)
+      const generation = generationRef.current
       try {
         const envelope = await getGraphEvidence(bearerToken, evidenceId)
+        if (generation !== generationRef.current) return
         setSelectedProof(envelope.result)
       } catch (error) {
+        if (generation !== generationRef.current) return
         if (!handleUnauthorizedIfNeeded(error)) {
           setProofError(error instanceof Error ? error.message : String(error))
         }
       } finally {
-        setProofLoadingId(null)
+        if (generation === generationRef.current) setProofLoadingId(null)
       }
     },
     [bearerToken, handleUnauthorizedIfNeeded],
@@ -677,7 +713,7 @@ export function InvestigationWorkspace() {
           }}
           onResetFleet={() => {
             setActiveAppGraph(null)
-            setGraphElements(latestHosts.length ? graphFromHosts(latestHosts) : SEED_GRAPH)
+            setGraphElements(latestHosts.length ? graphFromHosts(latestHosts) : EMPTY_GRAPH)
             setSelection({ kind: "none" })
             setSelectedProof(null)
           }}
@@ -690,6 +726,8 @@ export function InvestigationWorkspace() {
           selection={selection}
           evidenceItems={activeAppGraph?.evidence ?? []}
           latestLogs={latestLogs}
+          latestHosts={latestHosts}
+          emptyGraph={activeAppGraph !== null && activeAppGraph.entities.length === 0}
           selectedProof={selectedProof}
           proofLoadingId={proofLoadingId}
           proofError={proofError}

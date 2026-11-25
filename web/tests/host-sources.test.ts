@@ -5,6 +5,7 @@ import {
   graphFromInvestigation,
   mergeAppGraphs,
   normalizeHostSources,
+  relatedLogsForNode,
 } from "../src/lib/host-sources"
 
 describe("host source graph", () => {
@@ -162,5 +163,44 @@ describe("host source graph", () => {
     expect(expanded.entities).toHaveLength(3)
     expect(expanded.relationships).toHaveLength(2)
     expect(expanded.focus?.id).toBe(1)
+  })
+
+  it("does not invent fleet entities for an empty investigation graph", () => {
+    expect(graphFromInvestigation({ focus: null, entities: [], relationships: [], evidence: [] })).toEqual({
+      nodes: [],
+      edges: [],
+    })
+    expect(graphFromInvestigation(undefined)).toEqual({ nodes: [], edges: [] })
+  })
+})
+
+describe("node log attribution", () => {
+  const hosts = [
+    { hostname: "shared", host_id: "first", source_kind: "host" },
+    { hostname: "shared", host_id: "second", source_kind: "host" },
+    { hostname: "unique", host_id: "third", source_kind: "host" },
+  ]
+  const nodeFor = (hostId: string) =>
+    graphFromHosts(hosts).nodes.find((node) => node.data.host_id === hostId)!.data
+
+  it("ties rows with a host ID to that device only", () => {
+    const logs = [
+      { hostname: "shared", host_id: "second", message: "other device" },
+      { hostname: "different-alias", host_id: "first", message: "selected device" },
+    ]
+    expect(relatedLogsForNode(nodeFor("first"), logs, hosts).rows.map((row) => row.message)).toEqual([
+      "selected device",
+    ])
+  })
+
+  it("omits and counts hostname-only rows that match several sources", () => {
+    const result = relatedLogsForNode(nodeFor("first"), [{ hostname: "shared" }], hosts)
+    expect(result).toEqual({ rows: [], ambiguousCount: 1 })
+  })
+
+  it("keeps hostname-only rows when the name is unique", () => {
+    const result = relatedLogsForNode(nodeFor("third"), [{ hostname: "unique" }], hosts)
+    expect(result.rows).toHaveLength(1)
+    expect(result.ambiguousCount).toBe(0)
   })
 })
