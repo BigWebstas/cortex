@@ -27,7 +27,7 @@ fn cursor_error(error: CursorError) -> ServiceError {
     ServiceError::InvalidInput(error.to_string())
 }
 /// Resolve a run key or fail with `NotFound("run_not_found")` (HTTP 404).
-fn resolve_run(
+pub(super) fn resolve_run(
     pool: &db::DbPool,
     run_key: &str,
 ) -> anyhow::Result<(i64, ao::RunTelemetryIdentity)> {

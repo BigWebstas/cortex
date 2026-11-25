@@ -53,6 +53,7 @@ use crate::db::agent_observatory as observatory;
 use crate::mcp::{AuthPolicy, build_auth_layer};
 use crate::surfaces::{get, post};
 
+mod agent_observatory;
 mod credential_generation;
 mod investigation;
 
@@ -302,10 +303,6 @@ pub fn router(state: ApiState) -> anyhow::Result<Router> {
             "GET /api/agent-observatory/worktrees",
             get(observatory_worktrees),
         )
-        .contract_route(
-            "GET /api/repositories/{repository_id}/worktrees",
-            get(observatory_repository_worktrees),
-        )
         .contract_route("GET /api/agent-observatory/runs", get(observatory_runs))
         .contract_route("GET /api/agent-runs", get(observatory_runs))
         .contract_route(
@@ -327,6 +324,7 @@ pub fn router(state: ApiState) -> anyhow::Result<Router> {
         .contract_route("GET /api/streams/logs", get(log_stream))
         .contract_route("GET /api/streams/sessions", get(session_stream))
         .merge(investigation::routes())
+        .merge(agent_observatory::routes())
         // --- surface parity routes ---
         .contract_route("GET /api/source-ips", get(source_ips))
         .contract_route("GET /api/timeline", get(timeline))
@@ -640,16 +638,6 @@ struct ObservatoryWorktreesQuery {
     limit: Option<usize>,
 }
 
-#[derive(Debug, Deserialize)]
-#[serde(deny_unknown_fields)]
-struct ObservatoryRepositoryWorktreesQuery {
-    branch: Option<String>,
-    dirty: Option<bool>,
-    include_removed: Option<bool>,
-    cursor: Option<String>,
-    limit: Option<usize>,
-}
-
 async fn observatory_worktrees(
     State(state): State<ApiState>,
     Query(query): Query<ObservatoryWorktreesQuery>,
@@ -658,31 +646,6 @@ async fn observatory_worktrees(
         .service
         .observatory_worktrees(
             query.repository_id,
-            query.branch,
-            query.dirty,
-            query.include_removed.unwrap_or(false),
-            query.cursor,
-            query.limit.unwrap_or(50),
-        )
-        .await
-    {
-        Ok(page) => Json(observatory_page(page, |worktrees| WorktreeResources {
-            worktrees,
-        }))
-        .into_response(),
-        Err(error) => respond::<()>(Err(error)),
-    }
-}
-
-async fn observatory_repository_worktrees(
-    State(state): State<ApiState>,
-    Path(repository_id): Path<i64>,
-    serde_qs::axum::QsQuery(query): serde_qs::axum::QsQuery<ObservatoryRepositoryWorktreesQuery>,
-) -> impl IntoResponse {
-    match state
-        .service
-        .observatory_worktrees(
-            repository_id,
             query.branch,
             query.dirty,
             query.include_removed.unwrap_or(false),

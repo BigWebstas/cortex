@@ -681,3 +681,10 @@ RED: two builds with the same `SOURCE_DATE_EPOCH` produced different manifests
 GREEN: the Next build ID is derived from the build inputs
 PROOF: two clean builds produced identical manifests; the container `web-builder` stage passed
 NOTES: the release-binary smoke with a temporary database is not run, and CI does not appear to run the web unit or Playwright tests
+
+## AO-058 Mount repository and run REST routes
+commit/worktree SHA: `fix/web-workspace-evidence` (pre-commit proof)
+RED: three new API tests failed while the single repository, repository runs and run detail routes did not exist
+GREEN: added those routes through `CortexService` in sibling modules, and moved the repository worktrees route there so unknown repositories return 404
+PROOF: bearer, unknown-query, 404, scoping, bounded related records and latest-commit cases pass
+NOTES: remaining contract differences: `include=worktrees` and repository reconcile status are absent from the OpenAPI schema and not implemented; run objects keep the existing list shape (`primary_worktree_id`, `parent_run_id`, `freshness_json`) instead of schema `AgentRun`; errors lack the contract `message` field

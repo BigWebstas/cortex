@@ -201,6 +201,25 @@ pub fn list_agent_run_attributed_commits(
     run_id: i64,
     limit: usize,
 ) -> Result<Vec<AgentRunAttributedCommit>> {
+    attributed_commits(pool, run_id, None, limit)
+}
+
+/// The attribution relations between one run and one commit.
+pub fn list_run_commit_attributions(
+    pool: &DbPool,
+    run_id: i64,
+    commit_id: i64,
+    limit: usize,
+) -> Result<Vec<AgentRunAttributedCommit>> {
+    attributed_commits(pool, run_id, Some(commit_id), limit)
+}
+
+fn attributed_commits(
+    pool: &DbPool,
+    run_id: i64,
+    commit_id: Option<i64>,
+    limit: usize,
+) -> Result<Vec<AgentRunAttributedCommit>> {
     if run_id <= 0 {
         bail!("run_id must be positive");
     }
@@ -212,10 +231,11 @@ pub fn list_agent_run_attributed_commits(
                 c.authored_at,c.committed_at,c.subject,c.changed_files,c.insertions,c.deletions,
                 c.changed_paths_json,c.first_observed_at,c.last_observed_at,c.reachable,c.metadata_json
            FROM agent_run_commits r JOIN git_commits c ON c.id=r.commit_id
-          WHERE r.run_id=?1 ORDER BY r.first_seen_at,r.id LIMIT ?2",
+          WHERE r.run_id=?1 AND (?3 IS NULL OR r.commit_id=?3)
+          ORDER BY r.first_seen_at,r.id LIMIT ?2",
     )?;
     statement
-        .query_map(params![run_id, (limit.clamp(1, 200) + 1) as i64], |item| {
+        .query_map(params![run_id, (limit.clamp(1, 200) + 1) as i64, commit_id], |item| {
             Ok(AgentRunAttributedCommit {
                 relation: row(item)?,
                 commit: super::GitCommitRow {

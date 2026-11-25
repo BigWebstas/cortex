@@ -107,6 +107,14 @@ pub(super) const API_SURFACE_SPECS: &[SurfaceSpec] = &[
         Read
     ),
     api!("/api/agent-observatory/runs", Sessions, Canonical, Read),
+    api!("/api/repositories/{repository_id}", Sessions, Canonical, Read),
+    api!(
+        "/api/repositories/{repository_id}/runs",
+        Sessions,
+        Canonical,
+        Read
+    ),
+    api!("/api/agent-runs/{run_key}", Sessions, Canonical, Read),
     api!(
         "/api/agent-runs",
         Sessions,
