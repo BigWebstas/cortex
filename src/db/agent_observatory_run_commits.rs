@@ -235,30 +235,33 @@ fn attributed_commits(
           ORDER BY r.first_seen_at,r.id LIMIT ?2",
     )?;
     statement
-        .query_map(params![run_id, (limit.clamp(1, 200) + 1) as i64, commit_id], |item| {
-            Ok(AgentRunAttributedCommit {
-                relation: row(item)?,
-                commit: super::GitCommitRow {
-                    id: item.get(12)?,
-                    repository_id: item.get(13)?,
-                    sha: item.get(14)?,
-                    parent_shas_json: item.get(15)?,
-                    author_name: item.get(16)?,
-                    author_email_hash: item.get(17)?,
-                    authored_at: item.get(18)?,
-                    committed_at: item.get(19)?,
-                    subject: item.get(20)?,
-                    changed_files: item.get(21)?,
-                    insertions: item.get(22)?,
-                    deletions: item.get(23)?,
-                    changed_paths_json: item.get(24)?,
-                    first_observed_at: item.get(25)?,
-                    last_observed_at: item.get(26)?,
-                    reachable: item.get(27)?,
-                    metadata_json: item.get(28)?,
-                },
-            })
-        })?
+        .query_map(
+            params![run_id, (limit.clamp(1, 200) + 1) as i64, commit_id],
+            |item| {
+                Ok(AgentRunAttributedCommit {
+                    relation: row(item)?,
+                    commit: super::GitCommitRow {
+                        id: item.get(12)?,
+                        repository_id: item.get(13)?,
+                        sha: item.get(14)?,
+                        parent_shas_json: item.get(15)?,
+                        author_name: item.get(16)?,
+                        author_email_hash: item.get(17)?,
+                        authored_at: item.get(18)?,
+                        committed_at: item.get(19)?,
+                        subject: item.get(20)?,
+                        changed_files: item.get(21)?,
+                        insertions: item.get(22)?,
+                        deletions: item.get(23)?,
+                        changed_paths_json: item.get(24)?,
+                        first_observed_at: item.get(25)?,
+                        last_observed_at: item.get(26)?,
+                        reachable: item.get(27)?,
+                        metadata_json: item.get(28)?,
+                    },
+                })
+            },
+        )?
         .collect::<rusqlite::Result<_>>()
         .context("list attributed git commits")
 }
