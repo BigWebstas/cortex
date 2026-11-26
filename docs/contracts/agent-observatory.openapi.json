@@ -193,7 +193,7 @@
     },
     "schemas": {
       "Id": { "$ref": "./agent-observatory.schema.json#/$defs/Id" },
-      "Error": { "type": "object", "additionalProperties": false, "required": ["error", "message"], "properties": { "error": { "type": "string" }, "message": { "type": "string" }, "request_id": { "type": ["string", "null"] }, "details": { "type": "object" } } },
+      "Error": { "type": "object", "additionalProperties": false, "required": ["error"], "properties": { "error": { "type": "string" }, "message": { "type": "string" }, "request_id": { "type": ["string", "null"] }, "details": { "type": "object" } } },
       "Page": { "$ref": "./agent-observatory.schema.json#/$defs/Page" },
       "RepositoryPage": { "type": "object", "additionalProperties": false, "required": ["repositories", "pagination", "as_of", "stream_cursor"], "properties": { "repositories": { "type": "array", "items": { "$ref": "./agent-observatory.schema.json#/$defs/Repository" } }, "pagination": { "$ref": "#/components/schemas/Page" }, "as_of": { "type": "string", "format": "date-time" }, "stream_cursor": { "$ref": "#/components/schemas/Id" } } },
       "WorktreePage": { "type": "object", "additionalProperties": false, "required": ["worktrees", "pagination", "as_of", "stream_cursor"], "properties": { "worktrees": { "type": "array", "items": { "$ref": "./agent-observatory.schema.json#/$defs/Worktree" } }, "pagination": { "$ref": "#/components/schemas/Page" }, "as_of": { "type": "string", "format": "date-time" }, "stream_cursor": { "$ref": "#/components/schemas/Id" } } },

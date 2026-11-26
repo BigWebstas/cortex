@@ -623,3 +623,81 @@ RED: `/app/agents/` had no exported route, deterministic static server, browser 
 GREEN: added Playwright 1.61.1 and `@axe-core/playwright` 4.12.1, a dependency-free loopback static-export server that mounts `web/out` at `/app`, and desktop Chrome plus Pixel 7 projects
 PROOF: both Chromium projects passed route, title, main landmark, heading, and zero-violation axe assertions against `/app/agents/`
 GATE: the harness uses only static contract-backed shells; a later phase replaces this local server with the real Cortex binary
+
+## AO-068 Create Aurora lock schema and audit script
+commit/worktree SHA: `fix/web-workspace-evidence` (pre-commit proof)
+RED: `pnpm --dir web vitest run tests/aurora-lock.test.ts` failed because `scripts/audit-aurora.mjs` did not exist
+GREEN: added `web/aurora.lock.json` and an offline audit covering the full revision SHA, source hashes, graph completeness, installed-file presence and hashes, path containment, mutable URLs and unexplained edits
+PROOF: fixtures reject an altered file and mutable URLs; `node web/scripts/audit-aurora.mjs` fails with `no installed files are recorded` until AO-070
+NOTES: the parallel-primitive scan belongs to AO-073
+
+## AO-069 Resolve pinned Aurora dependency graph
+commit/worktree SHA: `fix/web-workspace-evidence` (pre-commit proof)
+RED: same missing-module failure for `scripts/resolve-aurora.mjs`
+GREEN: added an explicit `--refresh` resolver that walks only `@aurora/` dependencies and records sorted per-item hashes
+PROOF: cycle/repeat fixtures resolve once; two refreshes of revision `19e87c6b26dd32eb3be3db4d8b6fb32c99cd1d6d` produced byte-identical locks with 53 items
+NOTES: registry requests two `lucide-react` ranges (`^0.487.0`, `^1.21.0`); font CSS references `aurora.tootie.tv`; `aurora-base` lists no files of its own. Resolve before and during AO-070 to AO-072
+
+## AO-070 and AO-071 Install Aurora primitives, blocks and AI elements
+commit/worktree SHA: `fix/web-workspace-evidence` (pre-commit proof)
+RED: `node web/scripts/audit-aurora.mjs` reported `no installed files are recorded`
+GREEN: ran shadcn 4.13.1 in an isolated staging directory against the pinned raw URLs, then copied 59 files and recorded source and installed hashes
+REGRESSION: audit, typecheck, lint, 30 unit tests, static build, 14 browser tests and the container `web-builder` stage passed
+NOTES: `lucide-react` is pinned to 1.21.0 over the `^0.487.0` range most items request (typecheck passes; icons are not yet rendered). The `aurora-log-viewer` demo page is omitted and recorded in the lock. `web/lib/utils.ts` is local because the components import it and the install did not produce it. Vendored TypeScript is excluded from ESLint. Styles are vendored but not yet imported. The AO-071 usage mapping for each top-level item is still outstanding
+
+## AO-072 Vendor Aurora fonts and remove runtime font URLs (partial)
+commit/worktree SHA: `fix/web-workspace-evidence` (pre-commit proof)
+GREEN: vendored four WOFF2 files from the pinned Aurora revision with OFL texts from a pinned `google/fonts` commit; `aurora-fonts.css` now uses `/app/fonts/aurora/` and records the local modification
+PROOF: the audit finds no mutable URL in installed files
+NOTES: the offline browser font and network check waits until the styles are imported. The audit also verifies `vendored_assets` presence and hashes
+
+## AO-073 Implement Aurora component-import audit
+commit/worktree SHA: `fix/web-workspace-evidence` (pre-commit proof)
+RED: `pnpm --dir web vitest run tests/aurora-components.test.ts` failed because `auditComponents` did not exist
+GREEN: the audit reports local definitions or imports of primitive names, raw form and table elements, untracked files in vendored directories, and unreferenced or stale exceptions
+PROOF: negative fixtures are rejected and the committed source passes; `pnpm --dir web test` runs both audits
+NOTES: five investigation components are excused until AO-096 in `web/aurora.allow.json`. The exceptions cite the plan task, not an upstream Aurora issue. `.github/workflows/ci.yml` does not appear to run the web tests
+
+## AO-074 Build asset manifest generator
+commit/worktree SHA: `fix/web-workspace-evidence` (pre-commit proof)
+RED: new fixtures for commented-out scripts, `>` inside attributes, newline normalisation, ordering and the Aurora revision failed against the existing generator
+GREEN: inline scripts are found with parse5 8.0.1, ordering is locale-independent, and `aurora_revision` comes from `web/aurora.lock.json`
+PROOF: unit tests pass
+
+## AO-075 and AO-076 Rust asset table and router
+commit/worktree SHA: `fix/web-workspace-evidence` (pre-commit proof)
+GREEN: already present in `build.rs` and `src/web_app.rs`; byte-order sorting was fixed in `65235aaf`
+PROOF: `cargo test --lib --locked web_app::` passed 8 tests
+NOTES: unknown non-asset paths under `/app/` fall back to the investigation page, which existing tests expect; the task text asks only for traversal rejection. The missing-manifest failure message was not re-verified
+
+## AO-077 Add route-specific strict CSP
+commit/worktree SHA: `fix/web-workspace-evidence` (pre-commit proof)
+GREEN: per-page script hashes were already emitted; added `web/e2e/shell.spec.ts` against the production router
+PROOF: `/app/`, `/app/investigate/` and `/app/agents/` load on both browser projects with no console error or failed response, and `script-src` has no `unsafe-` source
+
+## AO-078 Add reproducible build and real-binary shell smoke (partial)
+commit/worktree SHA: `fix/web-workspace-evidence` (pre-commit proof)
+RED: two builds with the same `SOURCE_DATE_EPOCH` produced different manifests
+GREEN: the Next build ID is derived from the build inputs
+PROOF: two clean builds produced identical manifests; the container `web-builder` stage passed
+NOTES: the release-binary smoke with a temporary database is not run, and CI does not appear to run the web unit or Playwright tests
+
+## AO-058 Mount repository and run REST routes
+commit/worktree SHA: `fix/web-workspace-evidence` (pre-commit proof)
+RED: three new API tests failed while the single repository, repository runs and run detail routes did not exist
+GREEN: added those routes through `CortexService` in sibling modules, and moved the repository worktrees route there so unknown repositories return 404
+PROOF: bearer, unknown-query, 404, scoping, bounded related records and latest-commit cases pass
+NOTES: remaining contract differences: `include=worktrees` and repository reconcile status are absent from the OpenAPI schema and not implemented; run objects keep the existing list shape (`primary_worktree_id`, `parent_run_id`, `freshness_json`) instead of schema `AgentRun`; errors lack the contract `message` field
+
+## AO-059 to AO-061 Outbox replay, authenticated stream, reset and backpressure
+commit/worktree SHA: `fix/web-workspace-evidence` (pre-commit proof)
+RED: not recorded; the tests and implementation were written together
+GREEN: added `GET /api/agent-runs/stream` with replay then polling delivery, a bounded per-client queue, client slots, and reset events
+PROOF: `cargo test --lib --locked observatory` passed 150 tests, including replay boundaries, filters, unknown and expired cursors, replay cap, a lagging client beside a fast one, slot release, payload cap, bearer, and `Last-Event-ID` cases
+NOTES: expiry uses outbox `created_at` against `outbox_retention_secs`, not `expires_at`; delivery polls the database instead of using a broadcast channel; `projection_version_changed` is not emitted; nothing prunes the outbox (AO-097). The lag case uses a 500-event burst, not the planned 10,000
+
+## Contract alignment with existing response shapes
+commit/worktree SHA: `fix/web-workspace-evidence` (pre-commit proof)
+GREEN: run, event and error definitions now describe the shapes the server returns
+PROOF: `scripts/check-agent-observatory-contracts.sh` passed, and an API test compares returned fields with the schema for run detail, run, actor, evidence and event
+NOTES: worktree and telemetry definitions were not compared

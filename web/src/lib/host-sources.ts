@@ -2,6 +2,7 @@ import type {
   AppEntitySummary,
   AppEvidenceSummary,
   AppGraphResponse,
+  AppLogSummary,
   AppRelationshipSummary,
   HostSourceInput,
 } from "../contracts/investigation"
@@ -45,6 +46,8 @@ export interface GraphElements {
   nodes: Array<{ data: GraphNodeData }>
   edges: Array<{ data: GraphEdgeData }>
 }
+
+export const EMPTY_GRAPH: GraphElements = { nodes: [], edges: [] }
 
 export const SEED_GRAPH: GraphElements = {
   nodes: [
@@ -180,7 +183,33 @@ export function graphFromInvestigation(graph: AppGraphResponse | null | undefine
       },
     ]
   })
-  return nodes.length ? { nodes, edges } : SEED_GRAPH
+  return { nodes, edges }
+}
+
+/**
+ * Log rows that can be attributed to a graph node. A row carrying a host ID
+ * belongs only to that device. A hostname-only row is omitted when the name is
+ * shared by several sources, because it cannot be tied to one of them.
+ */
+export function relatedLogsForNode(
+  node: GraphNodeData,
+  logs: AppLogSummary[],
+  hosts: HostSourceInput[],
+): { rows: AppLogSummary[]; ambiguousCount: number } {
+  const aliases = Array.isArray(node.aliases) ? node.aliases : [node.label]
+  const sources = normalizeHostSources(hosts)
+  let ambiguousCount = 0
+  const rows = logs.filter((row) => {
+    if (row.host_id) return row.host_id === node.host_id
+    const name = String(row.hostname || row.host || "")
+    if (!aliases.includes(name)) return false
+    if (sources.filter((source) => source.aliases.includes(name)).length > 1) {
+      ambiguousCount += 1
+      return false
+    }
+    return true
+  })
+  return { rows, ambiguousCount }
 }
 
 export function mergeAppGraphs(

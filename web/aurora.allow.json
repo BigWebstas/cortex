@@ -1,0 +1,27 @@
+[
+  {
+    "path": "src/components/investigate/ask-panel.tsx",
+    "reason": "Hand-built controls that predate the Aurora install; replaced when the investigation route moves to Aurora.",
+    "reference": "AO-096"
+  },
+  {
+    "path": "src/components/investigate/evidence-panel.tsx",
+    "reason": "Hand-built controls that predate the Aurora install; replaced when the investigation route moves to Aurora.",
+    "reference": "AO-096"
+  },
+  {
+    "path": "src/components/investigate/graph-canvas.tsx",
+    "reason": "Hand-built controls that predate the Aurora install; replaced when the investigation route moves to Aurora.",
+    "reference": "AO-096"
+  },
+  {
+    "path": "src/components/investigate/investigation-workspace.tsx",
+    "reason": "Hand-built controls that predate the Aurora install; replaced when the investigation route moves to Aurora.",
+    "reference": "AO-096"
+  },
+  {
+    "path": "src/components/investigate/timeline-panel.tsx",
+    "reason": "Hand-built controls that predate the Aurora install; replaced when the investigation route moves to Aurora.",
+    "reference": "AO-096"
+  }
+]

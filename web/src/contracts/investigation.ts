@@ -99,6 +99,7 @@ export interface AppLogSummary {
   received_at?: string
   hostname?: string
   host?: string
+  host_id?: string | null
   severity?: string
   app_name?: string | null
   message?: string

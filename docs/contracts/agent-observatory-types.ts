@@ -132,8 +132,8 @@ export interface AgentRunSummary {
   tool: string
   provider_tool: string | null
   hostname: string
-  parent_run_key: string | null
-  previous_run_key: string | null
+  parent_run_id: Id | null
+  previous_run_id: Id | null
   status: RunStatus
   status_reason: string
   status_observed_at: Timestamp
@@ -141,13 +141,14 @@ export interface AgentRunSummary {
   last_activity_at: Timestamp
   ended_at: Timestamp | null
   transcript_path: string | null
-  primary_worktree: WorktreeSummary | null
+  primary_worktree_id: Id | null
   primary_branch: string | null
   start_head_sha: Sha | null
   current_head_sha: Sha | null
   event_count: number
   error_count: number
-  freshness: RunFreshness
+  /** JSON-encoded freshness lanes. */
+  freshness_json: string
 }
 
 export interface AgentRunDetail {
@@ -159,7 +160,7 @@ export interface AgentRunDetail {
   latest_stream_cursor: Id
 }
 
-export interface AgentRunEvent<TPayload = unknown> {
+export interface AgentRunEvent {
   id: Id
   event_key: string
   run_key: string
@@ -178,7 +179,8 @@ export interface AgentRunEvent<TPayload = unknown> {
   severity: string
   title: string
   summary: string
-  payload: TPayload | null
+  /** JSON-encoded payload, present only with include=payload. */
+  payload_json: string | null
   content_scrubbed: boolean
 }
 
@@ -333,7 +335,7 @@ export interface ObservatoryStatus {
 
 export interface ApiError {
   error: string
-  message: string
+  message?: string
   request_id?: string | null
   details?: Record<string, unknown>
 }

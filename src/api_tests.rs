@@ -15,9 +15,9 @@ use super::*;
 #[test]
 fn documented_rest_route_count_matches_router_registrations() {
     let binding_count = crate::surfaces::api_bindings().count();
-    assert_eq!(binding_count, 98, "update the documented API denominator");
-    assert!(include_str!("../docs/api.md").contains("98 method/path bindings total"));
-    assert!(include_str!("../docs/architecture.md").contains("(98 method/path bindings)"));
+    assert_eq!(binding_count, 102, "update the documented API denominator");
+    assert!(include_str!("../docs/api.md").contains("102 method/path bindings total"));
+    assert!(include_str!("../docs/architecture.md").contains("(102 method/path bindings)"));
 }
 
 /// Build the router for a test, layering a `MockConnectInfo` so handlers
@@ -4238,5 +4238,270 @@ async fn observatory_events_known_run_returns_only_its_own_events() {
                 .all(|event| event["run_key"] == "run-with-events"),
             "{prefix}: every event must belong to the requested run"
         );
+    }
+}
+
+fn seed_observatory_run_detail(pool: &DbPool) {
+    let conn = pool.get().unwrap();
+    conn.execute_batch(
+        "INSERT INTO repositories
+            (id,repository_key,hostname,common_git_dir,primary_path,display_name,first_seen_at,last_seen_at)
+         VALUES (1,'repo-one','host','/w/repo/.git','/w/repo','repo','2026-09-02T12:00:00.000Z','2026-09-02T12:00:00.000Z'),
+                (2,'repo-two','host','/w/two/.git','/w/two','two','2026-09-02T12:00:00.000Z','2026-09-02T12:00:00.000Z');
+         INSERT INTO repository_worktrees
+            (id,worktree_key,repository_id,hostname,path,git_dir,first_seen_at,last_seen_at)
+         VALUES (7,'wt-one',1,'host','/w/repo','/w/repo/.git','2026-09-02T12:00:00.000Z','2026-09-02T12:00:00.000Z');
+         INSERT INTO agent_runs
+            (id,run_key,native_session_id,tool,hostname,status,status_observed_at,started_at,last_activity_at)
+         VALUES (3,'host:codex:abc','abc','codex','host','active','2026-09-02T12:00:00Z','2026-09-02T12:00:00Z','2026-09-02T12:00:00Z'),
+                (4,'unrelated','def','codex','host','active','2026-09-02T12:00:00Z','2026-09-02T12:00:00Z','2026-09-02T12:00:00Z');
+         INSERT INTO agent_run_worktrees
+            (relation_key,run_id,worktree_id,evidence_kind,evidence_source,trust_level,confidence,is_primary,first_seen_at,last_seen_at)
+         VALUES ('rel',3,7,'cwd','transcript','verified',0.9,1,'2026-09-02T12:00:00Z','2026-09-02T12:05:00Z');
+         INSERT INTO agent_run_actors
+            (actor_key,run_id,native_actor_id,display_name,metadata_json)
+         VALUES ('actor-one',3,'main','Main','{\"private\":true}');
+         INSERT INTO agent_run_events
+            (event_key,run_id,observed_at,ingested_at,event_kind,source_kind,source_id,severity,title,summary,payload_json)
+         VALUES ('e1',3,'2026-09-02T12:00:00Z','2026-09-02T12:00:01Z','transcript','transcript','1','info','t','s','{}'),
+                ('e2',3,'2026-09-02T12:00:00Z','2026-09-02T12:00:01Z','command','transcript','2','info','t','s','{}'),
+                ('e3',3,'2026-09-02T12:00:00Z','2026-09-02T12:00:01Z','command','transcript','3','info','t','s','{}');",
+    )
+    .unwrap();
+}
+
+#[tokio::test]
+async fn observatory_run_detail_returns_bounded_related_evidence() {
+    let (state, pool, _dir) = test_state(Some("secret".into()));
+    seed_observatory_run_detail(&pool);
+    let app = test_router(state);
+    let uri = "/api/agent-runs/host%3Acodex%3Aabc";
+
+    let (status, _) = get_json(app.clone(), uri, None).await;
+    assert_eq!(status, axum::http::StatusCode::UNAUTHORIZED);
+    let (status, body) = get_json(app.clone(), uri, Some("secret")).await;
+    assert_eq!(status, axum::http::StatusCode::OK, "{body}");
+    assert_eq!(body["run"]["run_key"], "host:codex:abc");
+    assert_eq!(body["actors"][0]["key"], "actor-one");
+    assert_eq!(body["actors"][0]["native_id"], "main");
+    assert!(body["actors"][0].get("metadata_json").is_none());
+    assert_eq!(body["worktree_evidence"][0]["trust"], "verified");
+    assert_eq!(body["worktree_evidence"][0]["detail"], "/w/repo");
+    assert_eq!(
+        body["available_event_kinds"],
+        serde_json::json!(["command", "transcript"])
+    );
+    assert!(body["commit_summary"].is_null());
+    assert_eq!(body["latest_stream_cursor"], "0");
+
+    let (status, body) = get_json(app.clone(), "/api/agent-runs/missing", Some("secret")).await;
+    assert_eq!(status, axum::http::StatusCode::NOT_FOUND);
+    assert_eq!(body["error"], "run_not_found");
+    let (status, _) = get_json(app, &format!("{uri}?unexpected=1"), Some("secret")).await;
+    assert_eq!(status, axum::http::StatusCode::BAD_REQUEST);
+}
+
+#[tokio::test]
+async fn observatory_run_detail_summarises_the_latest_attributed_commit() {
+    let (state, pool, _dir) = test_state(Some("secret".into()));
+    seed_observatory_run_detail(&pool);
+    pool.get()
+        .unwrap()
+        .execute_batch(
+            "INSERT INTO git_commits
+                (id,repository_id,sha,parent_shas_json,subject,changed_paths_json,first_observed_at,last_observed_at,reachable,author_email_hash)
+             VALUES (1,1,'1111111111111111111111111111111111111111','[]','older','[]','2026-09-02T12:00:00Z','2026-09-02T12:00:00Z',1,'hash'),
+                    (2,1,'2222222222222222222222222222222222222222','[\"1111111111111111111111111111111111111111\"]','newer','[\"src/lib.rs\"]','2026-09-02T12:01:00Z','2026-09-02T12:01:00Z',1,'hash');
+             INSERT INTO agent_run_commits
+                (relation_key,run_id,commit_id,evidence_kind,evidence_source,trust_level,confidence,first_seen_at,last_seen_at)
+             VALUES ('c1',3,1,'time','git','inferred',0.4,'2026-09-02T12:00:00Z','2026-09-02T12:00:00Z'),
+                    ('c2',3,2,'command','transcript','verified',1.0,'2026-09-02T12:01:00Z','2026-09-02T12:01:00Z');",
+        )
+        .unwrap();
+    let app = test_router(state);
+    let (status, body) = get_json(app, "/api/agent-runs/host%3Acodex%3Aabc", Some("secret")).await;
+    assert_eq!(status, axum::http::StatusCode::OK, "{body}");
+    let commit = &body["commit_summary"];
+    assert_eq!(commit["subject"], "newer");
+    assert_eq!(commit["changed_paths"], serde_json::json!(["src/lib.rs"]));
+    assert_eq!(commit["evidence"].as_array().unwrap().len(), 1);
+    assert_eq!(commit["evidence"][0]["trust"], "verified");
+    assert!(commit.get("author_email_hash").is_none());
+}
+
+#[tokio::test]
+async fn observatory_repository_detail_and_runs_are_scoped_and_404_when_unknown() {
+    let (state, pool, _dir) = test_state(Some("secret".into()));
+    seed_observatory_run_detail(&pool);
+    let app = test_router(state);
+
+    for uri in ["/api/repositories/1", "/api/repositories/1/runs"] {
+        let (status, _) = get_json(app.clone(), uri, None).await;
+        assert_eq!(status, axum::http::StatusCode::UNAUTHORIZED, "{uri}");
+    }
+    let (status, body) = get_json(app.clone(), "/api/repositories/1", Some("secret")).await;
+    assert_eq!(status, axum::http::StatusCode::OK, "{body}");
+    assert_eq!(body["key"], "repo-one");
+    assert_eq!(body["worktree_count"], 1);
+    assert_eq!(body["active_run_count"], 1);
+
+    let (status, body) = get_json(
+        app.clone(),
+        "/api/repositories/1/runs?status=active&tool=codex",
+        Some("secret"),
+    )
+    .await;
+    assert_eq!(status, axum::http::StatusCode::OK, "{body}");
+    assert_eq!(body["runs"].as_array().unwrap().len(), 1);
+    assert_eq!(body["runs"][0]["run_key"], "host:codex:abc");
+    let (status, body) = get_json(app.clone(), "/api/repositories/2/runs", Some("secret")).await;
+    assert_eq!(status, axum::http::StatusCode::OK);
+    assert!(body["runs"].as_array().unwrap().is_empty());
+
+    let (status, body) =
+        get_json(app.clone(), "/api/repositories/1/worktrees", Some("secret")).await;
+    assert_eq!(status, axum::http::StatusCode::OK, "{body}");
+    assert_eq!(body["worktrees"][0]["key"], "wt-one");
+
+    for uri in [
+        "/api/repositories/99",
+        "/api/repositories/99/runs",
+        "/api/repositories/99/worktrees",
+    ] {
+        let (status, body) = get_json(app.clone(), uri, Some("secret")).await;
+        assert_eq!(status, axum::http::StatusCode::NOT_FOUND, "{uri}");
+        assert_eq!(body["error"], "repository_not_found");
+    }
+    for uri in [
+        "/api/repositories/1?unexpected=1",
+        "/api/repositories/1/runs?repository_id=2",
+    ] {
+        let (status, _) = get_json(app.clone(), uri, Some("secret")).await;
+        assert_eq!(status, axum::http::StatusCode::BAD_REQUEST, "{uri}");
+    }
+}
+
+async fn first_chunks(response: axum::response::Response, count: usize) -> String {
+    let mut body = response.into_body().into_data_stream();
+    let mut text = String::new();
+    for _ in 0..count {
+        let chunk = tokio::time::timeout(
+            std::time::Duration::from_secs(5),
+            futures_util::StreamExt::next(&mut body),
+        )
+        .await
+        .expect("stream chunk before timeout")
+        .expect("stream still open")
+        .unwrap();
+        text.push_str(std::str::from_utf8(&chunk).unwrap());
+    }
+    text
+}
+
+#[tokio::test]
+async fn observatory_stream_is_bearer_protected_and_resumes_from_last_event_id() {
+    let (state, pool, _dir) = test_state(Some("secret".into()));
+    seed_observatory_run_detail(&pool);
+    pool.get()
+        .unwrap()
+        .execute_batch(
+            "INSERT INTO agent_stream_outbox(outbox_key,run_id,stream_event_type,expires_at,payload_json)
+             VALUES ('a',3,'run.created','2999-01-01T00:00:00Z','{}'),
+                    ('b',3,'run.event','2999-01-01T00:00:00Z','{}');",
+        )
+        .unwrap();
+    let app = test_router(state);
+
+    // A token in the URL neither authenticates nor is accepted.
+    let (status, _) = get_json(app.clone(), "/api/agent-runs/stream?token=secret", None).await;
+    assert_eq!(status, axum::http::StatusCode::UNAUTHORIZED);
+    for (uri, code) in [
+        ("/api/agent-runs/stream?token=secret", None),
+        ("/api/agent-runs/stream?after=abc", Some("invalid_cursor")),
+        ("/api/agent-runs/stream?after=-1", Some("invalid_cursor")),
+    ] {
+        let (status, body) = get_json(app.clone(), uri, Some("secret")).await;
+        assert_eq!(status, axum::http::StatusCode::BAD_REQUEST, "{uri}");
+        if let Some(code) = code {
+            assert_eq!(body["error"], code);
+        }
+    }
+
+    let response = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri("/api/agent-runs/stream?after=0")
+                .header(header::AUTHORIZATION, "Bearer secret")
+                .header("last-event-id", "1")
+                .body(axum::body::Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(response.status(), axum::http::StatusCode::OK);
+    let headers = response.headers();
+    assert_eq!(headers[header::CONTENT_TYPE], "text/event-stream");
+    assert_eq!(headers[header::CACHE_CONTROL], "no-cache, no-store");
+    assert_eq!(headers["x-accel-buffering"], "no");
+    let text = first_chunks(response, 2).await;
+    assert!(text.starts_with("retry: 3000"), "{text}");
+    assert!(text.contains("id: 2\nevent: run.event\ndata: {"), "{text}");
+    assert!(!text.contains("run.created"), "{text}");
+}
+
+#[tokio::test]
+async fn observatory_stream_rejects_clients_beyond_the_configured_limit() {
+    let (state, _pool, _dir) = test_state(Some("secret".into()));
+    let config = crate::config::AgentObservatoryStreamConfig {
+        max_clients: 1,
+        ..Default::default()
+    };
+    let app = test_router(state.with_observatory_stream(&config));
+    let held = get_response(app.clone(), "/api/agent-runs/stream", Some("secret")).await;
+    assert_eq!(held.status(), axum::http::StatusCode::OK);
+    let (status, body) = get_json(app.clone(), "/api/agent-runs/stream", Some("secret")).await;
+    assert_eq!(status, axum::http::StatusCode::TOO_MANY_REQUESTS);
+    assert_eq!(body["error"], "stream_client_limit");
+    drop(held);
+    let response = get_response(app, "/api/agent-runs/stream", Some("secret")).await;
+    assert_eq!(response.status(), axum::http::StatusCode::OK);
+}
+
+/// The published schema must keep matching the objects the server returns.
+#[tokio::test]
+async fn observatory_run_and_event_fields_match_the_contract_schema() {
+    let (state, pool, _dir) = test_state(Some("secret".into()));
+    seed_observatory_run_detail(&pool);
+    let app = test_router(state);
+    let schema: serde_json::Value = serde_json::from_str(include_str!(
+        "../docs/contracts/agent-observatory.schema.json"
+    ))
+    .unwrap();
+    let uri = "/api/agent-runs/host%3Acodex%3Aabc";
+    let (_, detail) = get_json(app.clone(), uri, Some("secret")).await;
+    let (_, events) = get_json(app, &format!("{uri}/events"), Some("secret")).await;
+    for (name, value) in [
+        ("AgentRunDetail", &detail),
+        ("AgentRun", &detail["run"]),
+        ("AgentActor", &detail["actors"][0]),
+        ("Evidence", &detail["worktree_evidence"][0]),
+        ("AgentRunEvent", &events["events"][0]),
+    ] {
+        let mut expected = schema["$defs"][name]["required"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|field| field.as_str().unwrap().to_string())
+            .collect::<Vec<_>>();
+        expected.sort();
+        let mut actual = value
+            .as_object()
+            .unwrap()
+            .keys()
+            .cloned()
+            .collect::<Vec<_>>();
+        actual.sort();
+        assert_eq!(actual, expected, "{name}");
     }
 }

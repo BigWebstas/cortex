@@ -220,6 +220,17 @@ async fn graph_dependency_is_pinned_and_documented() {
     );
 }
 
+#[test]
+fn every_embedded_asset_can_be_looked_up() {
+    for asset in EMBEDDED_ASSETS {
+        assert!(
+            find_asset(asset.request_path).is_some(),
+            "embedded asset is unreachable: {}",
+            asset.request_path
+        );
+    }
+}
+
 // Playwright starts the actual production router and embedded assets. API fixtures
 // are provided by the browser tests; this server has no collectors or database.
 #[tokio::test]

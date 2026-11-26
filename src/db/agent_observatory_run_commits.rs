@@ -201,6 +201,25 @@ pub fn list_agent_run_attributed_commits(
     run_id: i64,
     limit: usize,
 ) -> Result<Vec<AgentRunAttributedCommit>> {
+    attributed_commits(pool, run_id, None, limit)
+}
+
+/// The attribution relations between one run and one commit.
+pub fn list_run_commit_attributions(
+    pool: &DbPool,
+    run_id: i64,
+    commit_id: i64,
+    limit: usize,
+) -> Result<Vec<AgentRunAttributedCommit>> {
+    attributed_commits(pool, run_id, Some(commit_id), limit)
+}
+
+fn attributed_commits(
+    pool: &DbPool,
+    run_id: i64,
+    commit_id: Option<i64>,
+    limit: usize,
+) -> Result<Vec<AgentRunAttributedCommit>> {
     if run_id <= 0 {
         bail!("run_id must be positive");
     }
@@ -212,33 +231,37 @@ pub fn list_agent_run_attributed_commits(
                 c.authored_at,c.committed_at,c.subject,c.changed_files,c.insertions,c.deletions,
                 c.changed_paths_json,c.first_observed_at,c.last_observed_at,c.reachable,c.metadata_json
            FROM agent_run_commits r JOIN git_commits c ON c.id=r.commit_id
-          WHERE r.run_id=?1 ORDER BY r.first_seen_at,r.id LIMIT ?2",
+          WHERE r.run_id=?1 AND (?3 IS NULL OR r.commit_id=?3)
+          ORDER BY r.first_seen_at,r.id LIMIT ?2",
     )?;
     statement
-        .query_map(params![run_id, (limit.clamp(1, 200) + 1) as i64], |item| {
-            Ok(AgentRunAttributedCommit {
-                relation: row(item)?,
-                commit: super::GitCommitRow {
-                    id: item.get(12)?,
-                    repository_id: item.get(13)?,
-                    sha: item.get(14)?,
-                    parent_shas_json: item.get(15)?,
-                    author_name: item.get(16)?,
-                    author_email_hash: item.get(17)?,
-                    authored_at: item.get(18)?,
-                    committed_at: item.get(19)?,
-                    subject: item.get(20)?,
-                    changed_files: item.get(21)?,
-                    insertions: item.get(22)?,
-                    deletions: item.get(23)?,
-                    changed_paths_json: item.get(24)?,
-                    first_observed_at: item.get(25)?,
-                    last_observed_at: item.get(26)?,
-                    reachable: item.get(27)?,
-                    metadata_json: item.get(28)?,
-                },
-            })
-        })?
+        .query_map(
+            params![run_id, (limit.clamp(1, 200) + 1) as i64, commit_id],
+            |item| {
+                Ok(AgentRunAttributedCommit {
+                    relation: row(item)?,
+                    commit: super::GitCommitRow {
+                        id: item.get(12)?,
+                        repository_id: item.get(13)?,
+                        sha: item.get(14)?,
+                        parent_shas_json: item.get(15)?,
+                        author_name: item.get(16)?,
+                        author_email_hash: item.get(17)?,
+                        authored_at: item.get(18)?,
+                        committed_at: item.get(19)?,
+                        subject: item.get(20)?,
+                        changed_files: item.get(21)?,
+                        insertions: item.get(22)?,
+                        deletions: item.get(23)?,
+                        changed_paths_json: item.get(24)?,
+                        first_observed_at: item.get(25)?,
+                        last_observed_at: item.get(26)?,
+                        reachable: item.get(27)?,
+                        metadata_json: item.get(28)?,
+                    },
+                })
+            },
+        )?
         .collect::<rusqlite::Result<_>>()
         .context("list attributed git commits")
 }

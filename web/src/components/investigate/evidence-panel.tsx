@@ -4,9 +4,10 @@ import type {
   AppEvidenceSummary,
   AppGraphEvidenceResponse,
   AppLogSummary,
+  HostSourceInput,
   InvestigationClaim,
 } from "../../contracts/investigation"
-import type { GraphEdgeData, GraphNodeData } from "../../lib/host-sources"
+import { type GraphEdgeData, type GraphNodeData, relatedLogsForNode } from "../../lib/host-sources"
 
 export type InspectorSelection =
   | { kind: "none" }
@@ -18,6 +19,8 @@ export interface EvidencePanelProps {
   selection: InspectorSelection
   evidenceItems: AppEvidenceSummary[]
   latestLogs: AppLogSummary[]
+  latestHosts: HostSourceInput[]
+  emptyGraph: boolean
   selectedProof: AppGraphEvidenceResponse | null
   proofLoadingId: number | null
   proofError: string | null
@@ -40,6 +43,8 @@ export function EvidencePanel({
   selection,
   evidenceItems,
   latestLogs,
+  latestHosts,
+  emptyGraph,
   selectedProof,
   proofLoadingId,
   proofError,
@@ -88,18 +93,11 @@ export function EvidencePanel({
           )
         : []
 
-  const relatedLogs =
+  const related =
     selection.kind === "node"
-      ? latestLogs
-          .filter((row) => {
-            const host = row.hostname || row.host || ""
-            const aliases = Array.isArray(selection.node.aliases)
-              ? selection.node.aliases
-              : [selection.node.label]
-            return aliases.some((alias) => alias === String(host))
-          })
-          .slice(0, 5)
-      : []
+      ? relatedLogsForNode(selection.node, latestLogs, latestHosts)
+      : { rows: [], ambiguousCount: 0 }
+  const relatedLogs = related.rows.slice(0, 5)
 
   return (
     <aside className="aurora-surface overflow-hidden flex flex-col" aria-label="Evidence inspector">
@@ -116,6 +114,12 @@ export function EvidencePanel({
       </div>
 
       <div className="grid gap-2.5 p-3 overflow-y-auto max-h-[520px]" data-evidence-list>
+        {emptyGraph && (
+          <p className="m-0 text-[13px] text-[var(--aurora-text-muted)]">
+            No graph entities returned for this investigation.
+          </p>
+        )}
+
         {selection.kind === "none" && (
           <p className="m-0 text-[13px] text-[var(--aurora-text-muted)]">
             Select a graph node, relationship edge, or answer claim to inspect trust level, reason
@@ -189,6 +193,12 @@ export function EvidencePanel({
 
             <div className="grid gap-2">
               <span className="aurora-meta-label">Related log context ({relatedLogs.length})</span>
+              {related.ambiguousCount > 0 && (
+                <p className="m-0 text-xs text-[var(--aurora-text-muted)]">
+                  {related.ambiguousCount} hostname-only log rows were omitted because the name
+                  matches multiple sources.
+                </p>
+              )}
               {relatedLogs.length === 0 ? (
                 <p className="m-0 text-xs text-[var(--aurora-text-muted)]">
                   No recent log rows matched this node&apos;s aliases in the current window.
@@ -200,6 +210,11 @@ export function EvidencePanel({
                       <span className="aurora-badge aurora-badge-neutral">
                         {row.severity || "log"}
                       </span>
+                      {!row.host_id && (
+                        <span className="text-[11px] text-[var(--aurora-text-muted)]">
+                          hostname only; device identity unverified
+                        </span>
+                      )}
                       <span className="aurora-mono text-[var(--aurora-text-muted)]">
                         {row.app_name || row.hostname || ""}
                       </span>

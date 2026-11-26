@@ -17,7 +17,7 @@ from pathlib import Path
 def request(base: str, method: str, path: str, token: str | None, admin: str | None,
             body: dict | None = None) -> tuple[int, bytes, dict[str, str]]:
     data = None if body is None else json.dumps(body, separators=(",", ":")).encode()
-    is_stream = path.startswith("/api/streams/")
+    is_stream = path.startswith(("/api/streams/", "/api/agent-runs/stream"))
     headers = {"Host": "localhost", "Accept": "text/event-stream" if is_stream else "application/json"}
     if token:
         headers["Authorization"] = f"Bearer {token}"
@@ -63,6 +63,11 @@ QUERY = {
     "/api/agent-observatory/runs/{run_key}/telemetry": {"span_limit": "5", "metric_limit": "5"},
     "/api/agent-runs/{run_key}/telemetry": {"span_limit": "5", "metric_limit": "5"},
     "/api/agent-observatory/worktrees": {"repository_id": "1", "limit": "5"},
+    # Single-resource routes reject unknown query parameters, so send none.
+    "/api/repositories/{repository_id}": {},
+    "/api/agent-runs/{run_key}": {},
+    "/api/agent-runs/stream": {},
+    "/api/repositories/{repository_id}/runs": {"limit": "5"},
     "/api/repositories/{repository_id}/worktrees": {"limit": "5"},
     "/api/sessions/rendered": {},
     "/api/streams/logs": {},
@@ -215,6 +220,7 @@ CONTRACTS = {
     "GET /api/source-ips": ("object", "source_ips total"),
     "GET /api/stats": ("object", "agent_docker_gate_blocked_count free_disk_mb logical_db_size_mb max_db_size_mb min_free_disk_mb newest_log oldest_log phantom_fts_rows physical_db_size_mb total_hosts total_logs write_blocked"),
     "GET /api/streams/logs": (None, ""),
+    "GET /api/agent-runs/stream": (None, ""),
     "GET /api/streams/sessions": (None, ""),
     "GET /api/tail": ("object", "count logs"),
     "GET /api/timeline": ("object", "bucket group_by points rollup_as_of"),
@@ -239,6 +245,9 @@ CONTRACTS = {
     "GET /api/recurring-error-comparison": ("object", "baseline_from baseline_to candidate_cap candidate_rows candidate_window_truncated comparisons focal_from focal_to privacy_policy results_truncated"),
     "GET /api/repositories": ("object", "as_of pagination repositories stream_cursor"),
     "GET /api/repositories/{repository_id}/worktrees": ("object", "as_of pagination stream_cursor worktrees"),
+    "GET /api/repositories/{repository_id}": ("object", "active_run_count first_seen_at hostname id key last_seen_at name primary_path removed_at worktree_count"),
+    "GET /api/repositories/{repository_id}/runs": ("object", "as_of pagination runs stream_cursor"),
+    "GET /api/agent-runs/{run_key}": ("object", "actors available_event_kinds commit_summary latest_stream_cursor run worktree_evidence"),
     "GET /api/version": ("object", "capabilities compose_container compose_project compose_service database_fingerprint deployment_id fleet_allowlist instance_id schema_version version"),
     "GET /v1/integration/identity": ("object", "api_version auth contract_version product product_version route_support server_id streams"),
     "POST /api/artifact-evidence": ("object", "cortexLogId event inserted"),

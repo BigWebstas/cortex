@@ -24,6 +24,46 @@ describe("embedded asset manifest generator", () => {
     ])
   })
 
+  it("follows HTML parsing rather than text matching", () => {
+    const html = [
+      "<!doctype html><html><head>",
+      "<!-- <script>commented()</script> -->",
+      '<script data-note="a>b">real()</script>',
+      "<script>crlf()\r\n</script>",
+      "</head><body></body></html>",
+    ].join("")
+
+    expect(extractInlineScriptHashes(html)).toEqual([
+      sha256Base64(Buffer.from("real()", "utf8")),
+      // The browser normalises newlines before hashing for CSP.
+      sha256Base64(Buffer.from("crlf()\n", "utf8")),
+    ])
+  })
+
+  it("orders assets by code unit and records the pinned Aurora revision", () => {
+    const dir = mkdtempSync(join(tmpdir(), "cortex-embed-order-"))
+    try {
+      for (const name of ["a_b.js", "a-b.js", "aB.js"]) writeFileSync(join(dir, name), name)
+      const lockPath = join(dir, "..", `${dir.split("/").pop()}.lock.json`)
+      writeFileSync(lockPath, JSON.stringify({ registry: { source_revision: "abc123" } }))
+      const manifest = buildEmbedManifest({
+        outDir: dir,
+        vendorCytoscape: null,
+        sourceDateEpoch: "1700000000",
+        auroraLockPath: lockPath,
+      })
+      rmSync(lockPath)
+      expect(manifest.assets.map((asset: { request_path: string }) => asset.request_path)).toEqual([
+        "/app/a-b.js",
+        "/app/aB.js",
+        "/app/a_b.js",
+      ])
+      expect(manifest.aurora_revision).toBe("abc123")
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
+  })
+
   it("generates a deterministic manifest with cache policies and exact ETags", () => {
     const dir = mkdtempSync(join(tmpdir(), "cortex-embed-test-"))
     try {
