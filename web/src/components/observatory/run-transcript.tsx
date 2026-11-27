@@ -10,6 +10,7 @@ import { Skeleton } from "@/components/ui/aurora/skeleton"
 import { listEvents } from "../../lib/observatory/api"
 import { transcriptEntry } from "../../lib/observatory/events"
 import { usePagedList } from "../../lib/observatory/hooks"
+import { thisRun } from "../../lib/observatory/live-context"
 import { LoadError, Toggle, When } from "./shared"
 
 /** Newest page first from the server; shown oldest to newest. */
@@ -31,7 +32,7 @@ export function RunTranscript({ runKey }: { runKey: string }) {
       options,
     )
     return { items: page.events, pagination: page.pagination }
-  })
+  }, thisRun(runKey))
   const entries = list.items
     .map((event) => ({ event, ...transcriptEntry(event) }))
     .reverse()

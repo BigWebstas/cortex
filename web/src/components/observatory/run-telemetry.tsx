@@ -7,6 +7,7 @@ import { Skeleton } from "@/components/ui/aurora/skeleton"
 import { getRunTelemetry } from "../../lib/observatory/api"
 import { usePagedList } from "../../lib/observatory/hooks"
 import { formatNanos, metricSummaries, spanTree } from "../../lib/observatory/telemetry"
+import { thisRun } from "../../lib/observatory/live-context"
 import { LoadError } from "./shared"
 
 const PAGE = 200
@@ -21,7 +22,7 @@ export function RunTelemetry({ runKey }: { runKey: string }) {
       options,
     )
     return page
-  })
+  }, thisRun(runKey))
   const metrics = usePagedList(`metrics:${runKey}`, (cursor) => async (token, options) => {
     const [, page] = await getRunTelemetry(
       token,
@@ -30,7 +31,7 @@ export function RunTelemetry({ runKey }: { runKey: string }) {
       options,
     )
     return page
-  })
+  }, thisRun(runKey))
   const rows = spanTree(spans.items)
   const summaries = metricSummaries(metrics.items)
 

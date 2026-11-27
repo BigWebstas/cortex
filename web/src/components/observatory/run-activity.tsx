@@ -18,6 +18,7 @@ import { Skeleton } from "@/components/ui/aurora/skeleton"
 import { type ActivityKind, activityEntry } from "../../lib/observatory/activity"
 import { listEvents } from "../../lib/observatory/api"
 import { usePagedList } from "../../lib/observatory/hooks"
+import { thisRun } from "../../lib/observatory/live-context"
 import { LoadError, Toggle, When, toggled } from "./shared"
 
 const KINDS: Array<[ActivityKind, string]> = [
@@ -38,7 +39,7 @@ export function RunActivity({ runKey }: { runKey: string }) {
       options,
     )
     return { items: page.events, pagination: page.pagination }
-  })
+  }, thisRun(runKey))
 
   return (
     <div className="grid gap-2">

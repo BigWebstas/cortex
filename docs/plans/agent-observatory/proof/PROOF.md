@@ -736,3 +736,10 @@ RED: not recorded as a separate run; the first real-server browser run found the
 GREEN: added Git, Activity, Telemetry and Evidence tabs and a repository overview. Telemetry `_unix_nano` fields are now decimal strings
 PROOF: lint, typecheck, 123 unit tests, the Aurora audit, the build, 58 desktop and mobile browser tests including a no-horizontal-overflow check, and 179 targeted Rust tests passed. The full Rust suite was not run on this change
 NOTES: only the latest related commit is available, because there is no route listing a run's commits. Telemetry shows spans and a metric table, without charts, span detail, or aggregate summaries. Evidence omits event-level provenance. The overview has no activity chart, recent commits or observer health. Aurora commit, branch, tool-call and chart components are not used. Not tried against real data. The telemetry response still differs from the OpenAPI object
+
+## AO-095 Live updates (partial)
+commit/worktree SHA: `feat/observatory-live` (pre-commit proof)
+RED: not recorded as a separate run
+GREEN: one stream per connected token follows a snapshot cursor, batches changed run keys, refreshes visible views in place, restarts from a new cursor after a reset with backoff, signs out on a rejected token and stops when cleared. Timeline scrolling no longer uses the virtualizer's retrying `scrollToIndex`, which could pull the reader back
+PROOF: lint, typecheck, 133 unit tests, the Aurora audit, the web app Rust tests, and the browser suite repeated three times on the production router passed; the four timeline browser tests also passed 320 of 320 under parallel load on a static server. The browser test server now lives long enough for the whole suite
+NOTES: updates refetch views rather than applying stream data, so the AO-082 reducer is not used. The stream carries only run-linked events, so repository or worktree changes without run activity do not appear until reload. With several pages loaded, a refresh updates the newest page and keeps older entries even if they no longer match a filter. No disconnect-and-recover browser test against a live server

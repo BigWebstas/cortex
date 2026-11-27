@@ -12,6 +12,7 @@ import type { RunStatus } from "../../../../docs/contracts/agent-observatory-typ
 import { listRuns } from "../../lib/observatory/api"
 import { usePagedList, useRoute } from "../../lib/observatory/hooks"
 import { STATUS_TONES } from "../../lib/observatory/view"
+import { anyRun } from "../../lib/observatory/live-context"
 import { LoadError, Toggle, When, toggled } from "./shared"
 
 const FILTERABLE: RunStatus[] = ["active", "waiting", "idle", "stale", "completed", "failed"]
@@ -73,7 +74,7 @@ export function RunList() {
   const list = usePagedList(`runs:${JSON.stringify(filters)}`, (cursor) => async (token, options) => {
     const page = await listRuns(token, { ...filters, cursor, limit: 100 }, options)
     return { items: page.runs, pagination: page.pagination }
-  })
+  }, anyRun)
 
   const scroller = useRef<HTMLDivElement>(null)
   // The virtualizer returns functions that React Compiler cannot memoize.

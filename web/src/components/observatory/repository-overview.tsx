@@ -5,6 +5,7 @@ import { Skeleton } from "@/components/ui/aurora/skeleton"
 import { getRepository, listRepositoryRuns, listWorktrees } from "../../lib/observatory/api"
 import { usePagedList } from "../../lib/observatory/hooks"
 import { worktreeState } from "../../lib/observatory/view"
+import { inventoryOrRuns } from "../../lib/observatory/live-context"
 import { LoadError } from "./shared"
 
 const ACTIVE = ["starting", "active", "waiting", "idle"]
@@ -15,11 +16,11 @@ export function RepositoryOverview({ repositoryId }: { repositoryId: string }) {
   const repository = usePagedList(`overview:${repositoryId}`, () => async (token, options) => ({
     items: [await getRepository(token, repositoryId, options)],
     pagination: whole,
-  }))
+  }), inventoryOrRuns)
   const worktrees = usePagedList(`overview-worktrees:${repositoryId}`, () => async (token, options) => {
     const page = await listWorktrees(token, repositoryId, { limit: 200 }, options)
     return { items: page.worktrees, pagination: page.pagination }
-  })
+  }, inventoryOrRuns)
   const runs = usePagedList(`overview-runs:${repositoryId}`, () => async (token, options) => {
     const page = await listRepositoryRuns(
       token,
@@ -28,7 +29,7 @@ export function RepositoryOverview({ repositoryId }: { repositoryId: string }) {
       options,
     )
     return { items: page.runs, pagination: page.pagination }
-  })
+  }, inventoryOrRuns)
   const error = repository.error ?? worktrees.error ?? runs.error
 
   if (error) {

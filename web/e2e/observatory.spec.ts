@@ -65,6 +65,8 @@ interface Fixtures {
   runs?: object[]
   /** Newest first, as the server returns them. */
   events?: (cursor: string | null) => { events: object[]; next: string | null }
+  /** Answers one stream connection; by default the stream stays quiet. */
+  stream?: () => Promise<{ status?: number; body: string }> | { status?: number; body: string }
 }
 
 async function mock(page: Page, fixtures: Fixtures = {}) {
@@ -74,6 +76,11 @@ async function mock(page: Page, fixtures: Fixtures = {}) {
     requests.push(url)
     const path = url.pathname
     let json: object | undefined
+    if (path === "/api/agent-runs/stream") {
+      const answer = (await fixtures.stream?.()) ?? { body: "retry: 30000\n\n" }
+      await route.fulfill({ contentType: "text/event-stream", ...answer })
+      return
+    }
     if (path === "/api/repositories") json = { repositories: [repository], ...page_() }
     else if (path === "/api/repositories/1") json = repository
     else if (path === "/api/repositories/1/runs") json = { runs: [run(1)], ...page_() }
@@ -411,4 +418,100 @@ test("every run view fits the width of the screen", async ({ page }) => {
     expect(overflow, name).toBeLessThanOrEqual(0)
     expect(await page.evaluate(() => window.innerWidth), name).toBe(page.viewportSize()!.width)
   }
+})
+
+const frame = (id: string, name = "run.event", data: object = {}) =>
+  `id: ${id}\nevent: ${name}\ndata: ${JSON.stringify({
+    id, event: name, entity_type: "run", entity_key: "v1|run:1", run_key: "v1|run:1",
+    occurred_at: at(0), data,
+  })}\n\n`
+
+function gate() {
+  let open!: () => void
+  const opened = new Promise<void>((resolve) => (open = resolve))
+  return { open, opened }
+}
+
+test("adds new events without a manual refresh, and only once", async ({ page }) => {
+  const release = gate()
+  let newest = 2
+  let connections = 0
+  const requests = await mock(page, {
+    events: () => ({
+      events: Array.from({ length: newest }, (_, index) => event(newest - index)),
+      next: null,
+    }),
+    stream: async () => {
+      if (connections++) return { body: "retry: 30000\n\n" }
+      await release.opened
+      return { body: "retry: 30000\n\n" + frame("2") + frame("2") + frame("3") }
+    },
+  })
+  await open(page, "?run=v1%7Crun%3A1")
+  await expect(page.getByText("2 events loaded")).toBeVisible()
+
+  newest = 3
+  release.open()
+
+  await expect(page.getByText("3 events loaded")).toBeVisible()
+  await expect(page.locator("[data-event-id]")).toHaveCount(3)
+  const stream = requests.find((url) => url.pathname === "/api/agent-runs/stream")!
+  expect(stream.search).toBe("")
+  expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([])
+})
+
+test("starts again from a new cursor after the stream resets", async ({ page }) => {
+  const release = gate()
+  let newest = 1
+  let connections = 0
+  const requests = await mock(page, {
+    events: () => ({
+      events: Array.from({ length: newest }, (_, index) => event(newest - index)),
+      next: null,
+    }),
+    stream: async () => {
+      if (connections++) return { body: "retry: 30000\n\n" }
+      await release.opened
+      return { body: frame("9", "observatory.reset", { reason: "cursor_expired" }) }
+    },
+  })
+  await open(page, "?run=v1%7Crun%3A1")
+  await expect(page.getByText("1 events loaded")).toBeVisible()
+
+  newest = 4
+  release.open()
+
+  await expect(page.getByText("4 events loaded")).toBeVisible()
+  const cursors = requests.filter(
+    (url) => url.pathname === "/api/agent-runs" && url.searchParams.get("limit") === "1",
+  )
+  expect(cursors).toHaveLength(2)
+  await expect.poll(() => connections).toBe(2)
+})
+
+test("signs out when the stream rejects the token", async ({ page }) => {
+  await mock(page, { stream: () => ({ status: 401, body: "" }) })
+  await page.goto("/app/agents/")
+  await page.getByLabel("Bearer token").fill("observatory-fixture-token")
+  await page.getByRole("button", { name: "Connect", exact: true }).click()
+  await expect(page.getByText("Token rejected")).toBeVisible()
+  await expect(page.locator("[data-live-state]")).toHaveCount(0)
+})
+
+test("stops asking for updates once the token is cleared", async ({ page }) => {
+  let connections = 0
+  const requests = await mock(page, {
+    stream: () => {
+      connections += 1
+      return { body: "retry: 1000\n\n" }
+    },
+  })
+  await open(page)
+  await expect.poll(() => connections).toBeGreaterThan(1)
+  await page.getByRole("button", { name: "Clear token" }).click()
+  await expect(page.locator("[data-live-state]")).toHaveCount(0)
+  await page.waitForTimeout(200)
+  const after = requests.length
+  await page.waitForTimeout(2_500)
+  expect(requests.length).toBe(after)
 })

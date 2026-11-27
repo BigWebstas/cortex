@@ -19,7 +19,9 @@ import type { AgentRunDetail } from "../../../../docs/contracts/agent-observator
 import { getRun } from "../../lib/observatory/api"
 import { AuthProvider, useAuth } from "../../lib/observatory/auth-context"
 import { errorText, useAuthorizedCall, useRoute } from "../../lib/observatory/hooks"
+import { thisRun, useLiveRefresh } from "../../lib/observatory/live-context"
 import { ConnectionCard } from "./connection-card"
+import { LiveProvider } from "./live-provider"
 import { RepositoryNavigator } from "./repository-navigator"
 import { RepositoryOverview } from "./repository-overview"
 import { RunActivity } from "./run-activity"
@@ -55,10 +57,13 @@ function SelectedRun({ runKey }: { runKey: string }) {
     call((token, options) => getRun(token, runKey, options), abort.signal)
       .then((detail) => setResult({ detail }))
       .catch((error: unknown) => {
-        if (!abort.signal.aborted) setResult({ error: errorText(error) })
+        if (abort.signal.aborted) return
+        // A failed live refresh keeps what is already shown.
+        setResult((previous) => (previous?.detail ? previous : { error: errorText(error) }))
       })
     return () => abort.abort()
   }, [call, runKey, attempt])
+  useLiveRefresh(thisRun(runKey), () => setAttempt((value) => value + 1))
 
   if (!result) return <Skeleton className="h-60" />
   if (!result.detail) {
@@ -167,7 +172,11 @@ function Workspace() {
 function ConnectedWorkspace() {
   const { snapshot } = useAuth()
   // A new token starts every list again.
-  return snapshot.status === "connected" ? <Workspace key={snapshot.epoch} /> : null
+  return snapshot.status === "connected" ? (
+    <LiveProvider key={snapshot.epoch}>
+      <Workspace />
+    </LiveProvider>
+  ) : null
 }
 
 export function Observatory() {

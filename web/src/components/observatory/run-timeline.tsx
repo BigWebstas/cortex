@@ -13,12 +13,13 @@ import type {
 } from "../../../../docs/contracts/agent-observatory-types"
 import { listEvents } from "../../lib/observatory/api"
 import { errorText, useAuthorizedCall, useRoute } from "../../lib/observatory/hooks"
+import { thisRun, useLiveRefresh } from "../../lib/observatory/live-context"
 import { mergeEvents } from "../../lib/observatory/view"
 import { LoadError, Toggle, When, toggled } from "./shared"
 
 const PAGE_SIZE = 200
 const AT_END_PIXELS = 24
-const ANCHOR_FRAMES = 12
+const ANCHOR_FRAMES = 30
 
 /** Distance from the top of the scroller to one event row, if it is mounted. */
 function rowOffset(scroller: HTMLElement, id: string): number | null {
@@ -26,16 +27,53 @@ function rowOffset(scroller: HTMLElement, id: string): number | null {
   return row ? row.getBoundingClientRect().top - scroller.getBoundingClientRect().top : null
 }
 
+const distanceFromEnd = (element: HTMLElement) =>
+  element.scrollHeight - element.scrollTop - element.clientHeight
+
+/**
+ * Keeps the newest row in view while rows are measured, and gives up as soon as
+ * something else scrolls away. The virtualizer's `scrollToIndex` is not used: it
+ * keeps retrying and pulls the reader back. Returns a function that stops.
+ */
+function holdEnd(scroller: HTMLElement): () => void {
+  let frames = ANCHOR_FRAMES
+  let request = 0
+  scroller.scrollTop = scroller.scrollHeight
+  let placed = scroller.scrollTop
+  const adjust = () => {
+    const movedAway =
+      scroller.scrollTop < placed - 1 && distanceFromEnd(scroller) >= AT_END_PIXELS
+    if (movedAway) return
+    scroller.scrollTop = scroller.scrollHeight
+    placed = scroller.scrollTop
+    if (--frames > 0) request = requestAnimationFrame(adjust)
+  }
+  request = requestAnimationFrame(adjust)
+  return () => cancelAnimationFrame(request)
+}
+
 /**
  * Holds a row still while rows added above it are measured and replace their
- * estimated heights. Returns a function that stops.
+ * estimated heights. Measuring can push the row out of the rendered range, so
+ * jump back to its estimated start until it is mounted. Returns a function that
+ * stops.
  */
-function holdRow(scroller: HTMLElement, id: string, offset: number): () => void {
+function holdRow(
+  scroller: HTMLElement,
+  id: string,
+  offset: number,
+  estimatedStart: () => number | undefined,
+): () => void {
   let frames = ANCHOR_FRAMES
   let request = 0
   const adjust = () => {
     const current = rowOffset(scroller, id)
-    if (current !== null && Math.abs(current - offset) >= 1) scroller.scrollTop += current - offset
+    if (current === null) {
+      const start = estimatedStart()
+      if (start !== undefined) scroller.scrollTop = start - offset
+    } else if (Math.abs(current - offset) >= 1) {
+      scroller.scrollTop += current - offset
+    }
     if (--frames > 0) request = requestAnimationFrame(adjust)
   }
   request = requestAnimationFrame(adjust)
@@ -114,6 +152,7 @@ export function RunTimeline({ runKey, kinds }: { runKey: string; kinds: AgentEve
   }, [fetchPage])
 
   useEffect(loadLatest, [loadLatest])
+  useLiveRefresh(thisRun(runKey), loadLatest)
 
   const loadOlder = () => {
     if (!history?.older || busy) return
@@ -142,11 +181,14 @@ export function RunTimeline({ runKey, kinds }: { runKey: string; kinds: AgentEve
       .finally(() => setBusy(false))
   }
 
+  const stopFollowing = useRef<(() => void) | null>(null)
   const goToEnd = useCallback(() => {
     following.current = true
     setUnseen(0)
-    if (events.length) virtualizer.scrollToIndex(events.length - 1, { align: "end" })
-  }, [events.length, virtualizer])
+    stopFollowing.current?.()
+    if (scroller.current) stopFollowing.current = holdEnd(scroller.current)
+  }, [])
+  useEffect(() => () => stopFollowing.current?.(), [])
 
   useLayoutEffect(() => {
     const kept = anchor.current
@@ -156,11 +198,12 @@ export function RunTimeline({ runKey, kinds }: { runKey: string; kinds: AgentEve
       if (index < 0) return
       // Jump close enough to mount the row, then correct it from the page. The
       // virtualizer's scrollToIndex keeps re-aligning and would fight this.
-      const start = virtualizer.getOffsetForIndex(index, "start")?.[0]
+      const estimatedStart = () => virtualizer.getOffsetForIndex(index, "start")?.[0]
+      const start = estimatedStart()
       if (start !== undefined) scroller.current.scrollTop = start - kept.offset
-      return holdRow(scroller.current, kept.id, kept.offset)
-    } else if (following.current && history?.events.length) {
-      virtualizer.scrollToIndex(history.events.length - 1, { align: "end" })
+      return holdRow(scroller.current, kept.id, kept.offset, estimatedStart)
+    } else if (following.current && history?.events.length && scroller.current) {
+      return holdEnd(scroller.current)
     }
   }, [history, virtualizer])
 
@@ -211,8 +254,7 @@ export function RunTimeline({ runKey, kinds }: { runKey: string; kinds: AgentEve
         aria-label="Run timeline"
         onScroll={(event) => {
           const element = event.currentTarget
-          following.current =
-            element.scrollHeight - element.scrollTop - element.clientHeight < AT_END_PIXELS
+          following.current = distanceFromEnd(element) < AT_END_PIXELS
           if (following.current) setUnseen(0)
         }}
       >

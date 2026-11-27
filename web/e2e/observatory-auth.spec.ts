@@ -4,7 +4,10 @@ import { expect, test, type Page } from "@playwright/test"
 const TOKEN = "observatory-fixture-token"
 
 async function mock(page: Page, status = 200) {
-  await page.route("**/api/agent-runs?*", (route) =>
+  await page.route("**/api/agent-runs/stream*", (route) =>
+    route.fulfill({ contentType: "text/event-stream", body: "retry: 30000\n\n" }),
+  )
+  await page.route(/\/api\/agent-runs\?/, (route) =>
     route.fulfill({
       json: {
         runs: [],

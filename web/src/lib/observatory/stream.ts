@@ -37,7 +37,7 @@ export interface FollowOptions {
   random?: () => number
 }
 
-function sleepUntilAborted(milliseconds: number, signal: AbortSignal): Promise<void> {
+export function sleepUntilAborted(milliseconds: number, signal: AbortSignal): Promise<void> {
   return new Promise((resolve) => {
     const done = () => {
       clearTimeout(timer)

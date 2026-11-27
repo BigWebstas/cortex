@@ -9,6 +9,7 @@ import type { AgentRunDetail } from "../../../../docs/contracts/agent-observator
 import { gitEntry } from "../../lib/observatory/activity"
 import { listEvents } from "../../lib/observatory/api"
 import { usePagedList } from "../../lib/observatory/hooks"
+import { thisRun } from "../../lib/observatory/live-context"
 import { LoadError, When } from "./shared"
 
 function LatestCommit({ commit }: { commit: NonNullable<AgentRunDetail["commit_summary"]> }) {
@@ -67,7 +68,7 @@ export function RunGit({ detail }: { detail: AgentRunDetail }) {
       options,
     )
     return { items: page.events, pagination: page.pagination }
-  })
+  }, thisRun(runKey))
 
   return (
     <div className="grid gap-4">

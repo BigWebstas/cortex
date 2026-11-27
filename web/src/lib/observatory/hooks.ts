@@ -5,6 +5,9 @@ import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore
 import type { Pagination } from "../../../../docs/contracts/agent-observatory-types"
 import { ObservatoryApiError, type RequestOptions } from "./api"
 import { useAuth } from "./auth-context"
+import { mergePages } from "./live"
+import type { LiveChange } from "./live"
+import { useLiveRefresh } from "./live-context"
 import { type Route, parseRoute, serializeRoute } from "./route"
 
 const ROUTE_EVENT = "cortex:route"
@@ -71,6 +74,7 @@ interface Loaded<T> {
   next: string | null
   error: string | null
   busy: boolean
+  pages: number
 }
 
 export interface Page<T> {
@@ -78,10 +82,14 @@ export interface Page<T> {
   pagination: Pagination
 }
 
-/** A cursor-paged list. Results for an earlier key are never shown. */
-export function usePagedList<T>(
+/**
+ * A cursor-paged list. Results for an earlier key are never shown. With `live`,
+ * matching changes refresh it in place.
+ */
+export function usePagedList<T extends { id: string }>(
   key: string,
   fetchPage: (cursor: string | null) => Call<Page<T>>,
+  live?: (change: LiveChange) => boolean,
 ) {
   const call = useAuthorizedCall()
   const [version, setVersion] = useState(0)
@@ -93,25 +101,69 @@ export function usePagedList<T>(
     fetchRef.current = fetchPage
   })
 
+  // Only the newest refresh may apply, and one asked for during the first load
+  // runs after it.
+  const refreshes = useRef(0)
+  const missed = useRef(false)
+  const loadedKey = useRef<string | null>(null)
+
+  const revalidate = useCallback(() => {
+    if (loadedKey.current !== current) {
+      missed.current = true
+      return
+    }
+    const signal = controller.current?.signal
+    const sequence = ++refreshes.current
+    call(fetchRef.current(null), signal)
+      .then((page) => {
+        if (sequence !== refreshes.current) return
+        setState((previous) => {
+          if (previous?.key !== current) return previous
+          const more = previous.pages > 1
+          return {
+            ...previous,
+            items: mergePages(previous.items, page.items, previous.pages),
+            next: more ? previous.next : page.pagination.next_cursor,
+            error: null,
+          }
+        })
+      })
+      // What is on screen stays; the next change or a manual refresh retries.
+      .catch(() => undefined)
+  }, [call, current])
+
   useEffect(() => {
     const abort = new AbortController()
     controller.current = abort
+    missed.current = false
     call(fetchRef.current(null), abort.signal)
-      .then((page) =>
+      .then((page) => {
+        loadedKey.current = current
         setState({
           key: current,
           items: page.items,
           next: page.pagination.next_cursor,
           error: null,
           busy: false,
-        }),
-      )
+          pages: 1,
+        })
+        if (missed.current) revalidate()
+      })
       .catch((error: unknown) => {
         if (abort.signal.aborted) return
-        setState({ key: current, items: [], next: null, error: errorText(error), busy: false })
+        loadedKey.current = current
+        setState({
+          key: current,
+          items: [],
+          next: null,
+          error: errorText(error),
+          busy: false,
+          pages: 0,
+        })
       })
     return () => abort.abort()
-  }, [call, current])
+  }, [call, current, revalidate])
+  useLiveRefresh(live ?? (() => false), revalidate)
 
   const loaded = state?.key === current ? state : null
   const loadMore = () => {
@@ -124,10 +176,17 @@ export function usePagedList<T>(
           previous?.key === current
             ? {
                 key: current,
-                items: [...previous.items, ...page.items],
+                // A live refresh may already have brought some of these in.
+                items: [
+                  ...previous.items,
+                  ...page.items.filter(
+                    (item) => !previous.items.some((held) => held.id === item.id),
+                  ),
+                ],
                 next: page.pagination.next_cursor,
                 error: null,
                 busy: false,
+                pages: previous.pages + 1,
               }
             : previous,
         ),

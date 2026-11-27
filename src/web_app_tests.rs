@@ -241,7 +241,9 @@ async fn browser_workspace_server() {
         .expect("bind isolated browser workspace server");
     axum::serve(listener, router())
         .with_graceful_shutdown(async {
-            tokio::time::sleep(std::time::Duration::from_secs(180)).await;
+            // Playwright stops the server itself; this only bounds an orphan,
+            // and must outlast the whole suite on a slow machine.
+            tokio::time::sleep(std::time::Duration::from_secs(30 * 60)).await;
         })
         .await
         .expect("serve browser workspace");

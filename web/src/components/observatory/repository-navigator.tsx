@@ -10,6 +10,7 @@ import type { RepositorySummary } from "../../../../docs/contracts/agent-observa
 import { listRepositories, listWorktrees } from "../../lib/observatory/api"
 import { usePagedList, useRoute } from "../../lib/observatory/hooks"
 import { groupByHost, worktreeState } from "../../lib/observatory/view"
+import { inventoryOrRuns } from "../../lib/observatory/live-context"
 import { LoadError, Toggle } from "./shared"
 
 const ROW = "w-full justify-start rounded-lg px-2 py-1.5 text-left"
@@ -35,7 +36,7 @@ function Worktrees({ repositoryId, showRemoved }: { repositoryId: string; showRe
       options,
     )
     return { items: page.worktrees, pagination: page.pagination }
-  })
+  }, inventoryOrRuns)
 
   if (list.loading) return <Skeleton className="ml-4 h-10" />
   if (list.error) return <LoadError message={list.error} onRetry={list.reload} />
@@ -90,7 +91,7 @@ export function RepositoryNavigator() {
       options,
     )
     return { items: page.repositories, pagination: page.pagination }
-  })
+  }, inventoryOrRuns)
   const isOpen = (repository: RepositorySummary) =>
     opened[repository.id] ?? route.repository === repository.id
 

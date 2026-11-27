@@ -24,6 +24,7 @@ import {
   matchesCommandFilter,
 } from "../../lib/observatory/events"
 import { usePagedList } from "../../lib/observatory/hooks"
+import { thisRun } from "../../lib/observatory/live-context"
 import { LoadError, Toggle, When, toggled } from "./shared"
 
 const FILTERS: Array<[CommandFilter, string]> = [
@@ -54,7 +55,7 @@ export function RunCommands({ runKey }: { runKey: string }) {
       options,
     )
     return { items: page.events, pagination: page.pagination }
-  })
+  }, thisRun(runKey))
   const entries = list.items.map((event) => ({ event, entry: commandEntry(event) }))
   const shown = entries
     .filter(({ entry }) => filters.every((filter) => matchesCommandFilter(entry, filter)))
