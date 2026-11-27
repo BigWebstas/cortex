@@ -701,3 +701,31 @@ commit/worktree SHA: `fix/web-workspace-evidence` (pre-commit proof)
 GREEN: run, event and error definitions now describe the shapes the server returns
 PROOF: `scripts/check-agent-observatory-contracts.sh` passed, and an API test compares returned fields with the schema for run detail, run, actor, evidence and event
 NOTES: worktree and telemetry definitions were not compared
+
+## AO-071 usage mapping and AO-072 styles and font proof
+commit/worktree SHA: `feat/observatory-ui` (pre-commit proof)
+RED: not observed separately; before this change the audit accepted a lock with no planned use for a top-level item; the styles were not imported
+GREEN: `web/aurora.lock.json` records a planned use for all top-level items and the audit requires it; `app/globals.css` imports the vendored tokens, fonts, theme and component layers
+PROOF: unit and browser tests pass; the browser test confirms Inter loads from `/app/fonts/aurora/` with no off-origin request. Before and after screenshots showed no layout change on the investigation page
+NOTES: the investigation page keeps its earlier palette through `.cortex-legacy-theme` until AO-096; other routes use Aurora tokens. The local `.aurora-card` class was renamed `.cortex-card` to avoid the Aurora class
+
+## AO-079 to AO-083 Observatory web foundations
+commit/worktree SHA: `feat/observatory-ui` (pre-commit proof)
+RED: not recorded as a separate run; tests were written before the modules. The first run failed the committed Aurora audit on a type-only import, and the first browser run failed on heading order
+GREEN: memory-only session and React context with an Aurora connection card; typed, bounded API client; fetch-based stream client with `Last-Event-ID`, backoff and reset results; pure snapshot and stream reducer; URL codec
+PROOF: 86 unit tests and 32 browser tests passed, including token absence from storage, URL, DOM and console after connect, clear and reload
+NOTES: modules live in `web/src/lib/observatory/` to match the existing layout, not `web/lib/`. Responses are checked only for being JSON objects. Telemetry is typed as the two-page array the server returns, which still differs from the contract, and its nanosecond fields lose precision in JavaScript. The stream client, reducer and URL codec are not connected to a page yet. The worktree schema gained `lock_reason` and `prune_reason`, and the contract test now compares repository and worktree fields
+
+## AO-084 to AO-088 Observatory read-only screens (partial)
+commit/worktree SHA: `feat/observatory-ui` (pre-commit proof)
+RED: not recorded as a separate run; first browser runs failed on heading order and on holding the timeline position after loading older events
+GREEN: repository and worktree navigator with a mobile sheet; filtered, virtualized, cursor-paged run list; run header with worktree attribution and evidence; virtualized timeline with older pages, manual refresh and return to the newest events
+PROOF: lint, typecheck, 100 unit tests, the Aurora audit, the build, the web app Rust tests and 40 desktop and mobile browser tests passed, including 5,000-run and 10,000-event bounds, inert markup, and axe checks
+NOTES: not implemented: command palette, resizable panels, Aurora sidebar and data table, sort options, host, branch and time-range controls, and most keyboard shortcuts. Updates are manual until AO-095. Relative times are computed when a row mounts. Not tried against real data. The CI browser step now uses the same build environment as the bundle test
+
+## AO-089 and AO-090 Transcript and command views (partial)
+commit/worktree SHA: `feat/observatory-ui` (pre-commit proof)
+RED: not recorded as a separate run
+GREEN: added run tabs, a transcript view with recorded speakers, run-scoped search and tool-message folding, and a command list with filters and a detail sheet. Copy run key now offers the key for manual copying when the clipboard is unavailable
+PROOF: lint, typecheck, 111 unit tests, the Aurora audit, the build, the web app Rust tests and 48 browser tests passed
+NOTES: no jump to match, timestamp toggle or plan and task renderers. Command filters apply only to loaded commands and the page says so. Lists use a plain list rather than the Aurora data table and fetch payloads with each page. Not tried against real data

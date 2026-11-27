@@ -129,7 +129,7 @@ export function EvidencePanel({
 
         {selection.kind === "node" && (
           <>
-            <div className="aurora-card grid gap-2 text-[13px]">
+            <div className="cortex-card grid gap-2 text-[13px]">
               <div>
                 <span className="aurora-meta-label block">Node id</span>
                 <span className="aurora-mono break-all">{selection.node.id}</span>
@@ -205,7 +205,7 @@ export function EvidencePanel({
                 </p>
               ) : (
                 relatedLogs.map((row, index) => (
-                  <article key={row.id ?? `${row.timestamp}-${index}`} className="aurora-card">
+                  <article key={row.id ?? `${row.timestamp}-${index}`} className="cortex-card">
                     <div className="flex items-center justify-between gap-2 mb-1">
                       <span className="aurora-badge aurora-badge-neutral">
                         {row.severity || "log"}
@@ -231,7 +231,7 @@ export function EvidencePanel({
 
         {selection.kind === "edge" && (
           <>
-            <div className="aurora-card grid gap-2 text-[13px]">
+            <div className="cortex-card grid gap-2 text-[13px]">
               <div className="grid grid-cols-2 gap-2">
                 <div>
                   <span className="aurora-meta-label block">Relationship</span>
@@ -269,7 +269,7 @@ export function EvidencePanel({
         )}
 
         {selection.kind === "claim" && (
-          <div className="aurora-card grid gap-2 text-[13px]">
+          <div className="cortex-card grid gap-2 text-[13px]">
             <p className="m-0 text-[var(--aurora-text-primary)]">{selection.claim.summary}</p>
             <div className="flex flex-wrap gap-2 text-xs text-[var(--aurora-text-muted)]">
               <span>Confidence: {selection.claim.confidence}</span>
@@ -292,7 +292,7 @@ export function EvidencePanel({
               </p>
             ) : (
               filteredEvidence.map((item) => (
-                <article key={item.id} className="aurora-card grid gap-1.5">
+                <article key={item.id} className="cortex-card grid gap-1.5">
                   <div className="flex items-center justify-between gap-2">
                     <span className={`aurora-badge ${toneForTrust(item.trust_level)}`}>
                       {item.source_kind} · {item.trust_level}
@@ -338,7 +338,7 @@ export function EvidencePanel({
         )}
 
         {selectedProof && (
-          <article className="aurora-card aurora-card-selected grid gap-1.5">
+          <article className="cortex-card cortex-card-selected grid gap-1.5">
             <div className="flex items-center justify-between gap-2">
               <span className="aurora-meta-label">Source proof #{selectedProof.evidence.id}</span>
               <span className={`aurora-badge ${toneForTrust(selectedProof.evidence.trust_level)}`}>

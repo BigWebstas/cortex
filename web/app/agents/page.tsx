@@ -1,5 +1,6 @@
 import type { Metadata } from "next"
 
+import { Observatory } from "../../src/components/observatory/observatory"
 import { WorkspaceShell } from "../../src/components/workspace-shell"
 
 export const metadata: Metadata = { title: "Agent Observatory" }
@@ -15,6 +16,7 @@ export default function AgentObservatoryPage() {
           attributed commits.
         </p>
       </header>
+      <Observatory />
     </WorkspaceShell>
   )
 }

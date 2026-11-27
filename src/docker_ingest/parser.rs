@@ -24,10 +24,9 @@ pub(super) fn log_output_to_entry(
         _ => return Ok(None),
     };
 
-    let raw_line = redact_url_credentials(
-        String::from_utf8_lossy(&bytes).trim_end_matches(['\r', '\n']),
-    )
-    .into_owned();
+    let raw_line =
+        redact_url_credentials(String::from_utf8_lossy(&bytes).trim_end_matches(['\r', '\n']))
+            .into_owned();
     if raw_line.is_empty() {
         return Ok(None);
     }

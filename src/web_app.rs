@@ -56,6 +56,9 @@ async fn serve_app(OriginalUri(uri): OriginalUri, headers: HeaderMap) -> Respons
     if EMBEDDED_WEB_BUNDLE {
         return serve_embedded_route(path, &headers);
     }
+    if looks_like_static_asset_path(path) {
+        return not_found();
+    }
     serve_legacy_index()
 }
 

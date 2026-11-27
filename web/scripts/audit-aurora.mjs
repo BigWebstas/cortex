@@ -7,8 +7,16 @@ import { fileURLToPath, pathToFileURL } from "node:url"
 
 const FULL_SHA = /^[0-9a-f]{40}$/
 const SHA256 = /^[0-9a-f]{64}$/
-const MUTABLE_URL =
-  /aurora\.tootie\.tv|fonts\.(googleapis|gstatic)\.com|dinglebear-ai\/aurora\/(main|master|HEAD)\/|shadcn(-ui)?@latest/
+// The public design-system registry, which serves whatever is newest.
+const MUTABLE_REGISTRY_HOST = "aurora.tootie.tv"
+const MUTABLE_URL = new RegExp(
+  [
+    MUTABLE_REGISTRY_HOST.replaceAll(".", "\\."),
+    "fonts\\.(googleapis|gstatic)\\.com",
+    "dinglebear-ai/aurora/(main|master|HEAD)/",
+    "shadcn(-ui)?@latest",
+  ].join("|"),
+)
 
 /** @returns {string[]} one message per problem; empty when the lock is satisfied */
 export function auditLock(lock, root) {
@@ -28,6 +36,7 @@ export function auditLock(lock, root) {
   }
   for (const name of lock.top_level_items ?? []) {
     if (!resolved.has(name)) problems.push(`unresolved top-level item: ${name}`)
+    if (!lock.usage?.[name]) problems.push(`no planned use recorded: ${name}`)
   }
 
   const files = lock.files ?? []
@@ -70,7 +79,8 @@ const PRIMITIVES = [
   "Tabs", "Textarea", "Timeline", "Toast", "Tooltip",
 ].join("|")
 const DEFINITION = new RegExp(`\\b(?:function|const|class)\\s+(${PRIMITIVES})\\b`, "g")
-const IMPORT = /\bimport\s+(?:type\s+)?([^;'"]+?)\s+from\s+["']([^"']+)["']/g
+// Type-only imports are skipped: a type cannot stand in for a component.
+const IMPORT = /\bimport\s+(?!type\s)([^;'"]+?)\s+from\s+["']([^"']+)["']/g
 const RAW_ELEMENT = /<(button|input|select|textarea|table|dialog)(?=[\s/>])/g
 const AURORA_SOURCE = /(^|\/)components\/(ui\/)?aurora\//
 

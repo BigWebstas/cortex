@@ -4480,7 +4480,9 @@ async fn observatory_run_and_event_fields_match_the_contract_schema() {
     .unwrap();
     let uri = "/api/agent-runs/host%3Acodex%3Aabc";
     let (_, detail) = get_json(app.clone(), uri, Some("secret")).await;
-    let (_, events) = get_json(app, &format!("{uri}/events"), Some("secret")).await;
+    let (_, events) = get_json(app.clone(), &format!("{uri}/events"), Some("secret")).await;
+    let (_, repository) = get_json(app.clone(), "/api/repositories/1", Some("secret")).await;
+    let (_, worktrees) = get_json(app, "/api/repositories/1/worktrees", Some("secret")).await;
     for (name, value) in [
         ("AgentRunDetail", &detail),
         ("AgentRun", &detail["run"]),
@@ -4493,6 +4495,29 @@ async fn observatory_run_and_event_fields_match_the_contract_schema() {
             .unwrap()
             .iter()
             .map(|field| field.as_str().unwrap().to_string())
+            .collect::<Vec<_>>();
+        expected.sort();
+        let mut actual = value
+            .as_object()
+            .unwrap()
+            .keys()
+            .cloned()
+            .collect::<Vec<_>>();
+        actual.sort();
+        assert_eq!(actual, expected, "{name}");
+    }
+
+    // Repository and worktree schemas leave some fields optional, so compare
+    // with every property they allow.
+    for (name, value) in [
+        ("Repository", &repository),
+        ("Worktree", &worktrees["worktrees"][0]),
+    ] {
+        let mut expected = schema["$defs"][name]["properties"]
+            .as_object()
+            .unwrap()
+            .keys()
+            .cloned()
             .collect::<Vec<_>>();
         expected.sort();
         let mut actual = value
