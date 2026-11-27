@@ -37,6 +37,11 @@ describe("Aurora component audit", () => {
     ])
   })
 
+  it("allows a type-only import that shares a primitive's name", () => {
+    write("src/api.ts", 'import type { Pagination } from "./contract"\nexport type P = Pagination\n')
+    expect(auditComponents(lock, root, [])).toEqual([])
+  })
+
   it("rejects hand-built controls", () => {
     write("src/form.tsx", "export const Form = () => (\n  <select\n    value=''\n  />\n)\n")
     expect(auditComponents(lock, root, [])).toEqual(["src/form.tsx: raw-element <select>"])

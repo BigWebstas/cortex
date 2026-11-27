@@ -71,7 +71,8 @@ const PRIMITIVES = [
   "Tabs", "Textarea", "Timeline", "Toast", "Tooltip",
 ].join("|")
 const DEFINITION = new RegExp(`\\b(?:function|const|class)\\s+(${PRIMITIVES})\\b`, "g")
-const IMPORT = /\bimport\s+(?:type\s+)?([^;'"]+?)\s+from\s+["']([^"']+)["']/g
+// Type-only imports are skipped: a type cannot stand in for a component.
+const IMPORT = /\bimport\s+(?!type\s)([^;'"]+?)\s+from\s+["']([^"']+)["']/g
 const RAW_ELEMENT = /<(button|input|select|textarea|table|dialog)(?=[\s/>])/g
 const AURORA_SOURCE = /(^|\/)components\/(ui\/)?aurora\//
 

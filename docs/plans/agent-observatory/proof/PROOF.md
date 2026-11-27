@@ -708,3 +708,10 @@ RED: not observed separately; before this change the audit accepted a lock with 
 GREEN: `web/aurora.lock.json` records a planned use for all top-level items and the audit requires it; `app/globals.css` imports the vendored tokens, fonts, theme and component layers
 PROOF: unit and browser tests pass; the browser test confirms Inter loads from `/app/fonts/aurora/` with no off-origin request. Before and after screenshots showed no layout change on the investigation page
 NOTES: the investigation page keeps its earlier palette through `.cortex-legacy-theme` until AO-096; other routes use Aurora tokens. The local `.aurora-card` class was renamed `.cortex-card` to avoid the Aurora class
+
+## AO-079 to AO-083 Observatory web foundations
+commit/worktree SHA: `feat/observatory-ui` (pre-commit proof)
+RED: not recorded as a separate run; tests were written before the modules. The first run failed the committed Aurora audit on a type-only import, and the first browser run failed on heading order
+GREEN: memory-only session and React context with an Aurora connection card; typed, bounded API client; fetch-based stream client with `Last-Event-ID`, backoff and reset results; pure snapshot and stream reducer; URL codec
+PROOF: 86 unit tests and 32 browser tests passed, including token absence from storage, URL, DOM and console after connect, clear and reload
+NOTES: modules live in `web/src/lib/observatory/` to match the existing layout, not `web/lib/`. Responses are checked only for being JSON objects. Telemetry is typed as the two-page array the server returns, which still differs from the contract, and its nanosecond fields lose precision in JavaScript. The stream client, reducer and URL codec are not connected to a page yet. The worktree schema gained `lock_reason` and `prune_reason`, and the contract test now compares repository and worktree fields
