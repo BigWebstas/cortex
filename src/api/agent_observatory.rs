@@ -12,7 +12,7 @@ use axum::{
     },
 };
 use serde::Deserialize;
-use serde_json::json;
+use serde_json::{Value, json};
 
 use super::{ApiState, RunResources, WorktreeResources, observatory_page, respond};
 use crate::agent_observatory::stream::Filter;
@@ -33,6 +33,14 @@ pub(super) fn routes() -> Router<ApiState> {
         )
         .contract_route("GET /api/agent-runs/{run_key}", get(run))
         .contract_route("GET /api/agent-runs/stream", get(stream))
+        .contract_route(
+            "GET /api/agent-observatory/runs/{run_key}/telemetry",
+            get(observatory_telemetry),
+        )
+        .contract_route(
+            "GET /api/agent-runs/{run_key}/telemetry",
+            get(observatory_telemetry),
+        )
 }
 
 #[derive(Debug, Deserialize)]
@@ -200,5 +208,65 @@ async fn observatory_repository_worktrees(
         }))
         .into_response(),
         Err(error) => respond::<()>(Err(error)),
+    }
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ObservatoryTelemetryQuery {
+    trace_id: Option<String>,
+    metric_name: Option<String>,
+    since_nano: Option<i64>,
+    until_nano: Option<i64>,
+    span_cursor: Option<String>,
+    metric_cursor: Option<String>,
+    span_limit: Option<usize>,
+    metric_limit: Option<usize>,
+}
+
+async fn observatory_telemetry(
+    State(state): State<ApiState>,
+    Path(run_key): Path<String>,
+    Query(query): Query<ObservatoryTelemetryQuery>,
+) -> impl IntoResponse {
+    let result = state
+        .service
+        .observatory_telemetry(
+            run_key,
+            observatory::TelemetryQuery {
+                trace_id: query.trace_id,
+                metric_name: query.metric_name,
+                since_nano: query.since_nano,
+                until_nano: query.until_nano,
+            },
+            query.span_cursor,
+            query.metric_cursor,
+            query.span_limit.unwrap_or(100),
+            query.metric_limit.unwrap_or(100),
+        )
+        .await;
+    respond(result.and_then(|pages| {
+        let mut value = serde_json::to_value(pages).map_err(anyhow::Error::from)?;
+        stringify_nanos(&mut value);
+        Ok(value)
+    }))
+}
+
+/// Unix-nanosecond timestamps exceed the integers JavaScript can hold exactly,
+/// so they are sent as decimal strings.
+fn stringify_nanos(value: &mut Value) {
+    match value {
+        Value::Array(items) => items.iter_mut().for_each(stringify_nanos),
+        Value::Object(fields) => {
+            for (name, field) in fields.iter_mut() {
+                match field {
+                    Value::Number(number) if name.ends_with("_unix_nano") => {
+                        *field = Value::String(number.to_string());
+                    }
+                    _ => stringify_nanos(field),
+                }
+            }
+        }
+        _ => {}
     }
 }

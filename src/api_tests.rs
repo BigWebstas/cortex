@@ -4530,3 +4530,28 @@ async fn observatory_run_and_event_fields_match_the_contract_schema() {
         assert_eq!(actual, expected, "{name}");
     }
 }
+
+#[tokio::test]
+async fn observatory_telemetry_sends_nanosecond_timestamps_as_exact_strings() {
+    let (state, pool, _dir) = test_state(Some("secret".into()));
+    seed_observatory_run_detail(&pool);
+    pool.get()
+        .unwrap()
+        .execute_batch(
+            "INSERT INTO otel_metric_points
+                (point_key,metric_name,instrument_kind,time_unix_nano,hostname,service_name,value_json,ai_tool,ai_session_id,received_at)
+             VALUES ('p','tokens','sum',1800000000000000001,'host','codex','{\"value\":1}','codex','abc','2026-09-02T12:00:00Z');",
+        )
+        .unwrap();
+    let (status, body) = get_json(
+        test_router(state),
+        "/api/agent-runs/host%3Acodex%3Aabc/telemetry",
+        Some("secret"),
+    )
+    .await;
+    assert_eq!(status, axum::http::StatusCode::OK, "{body}");
+    let point = &body[1]["items"][0];
+    assert_eq!(point["time_unix_nano"], "1800000000000000001", "{body}");
+    assert!(point["start_time_unix_nano"].is_null());
+    assert!(body[1]["pagination"]["limit"].is_number());
+}

@@ -42,6 +42,25 @@ const event = (index: number, extra: object = {}) => ({
   content_scrubbed: true, ...extra,
 })
 
+const nano = (offset: bigint) => String(1_800_000_000_000_000_000n + offset)
+const span = (span_id: string, parent_span_id: string | null, from: bigint, to: bigint) => ({
+  id: span_id, trace_id: "t", span_id, parent_span_id, name: `span ${span_id}`, kind: 1,
+  start_time_unix_nano: nano(from), end_time_unix_nano: nano(to),
+  duration_nano: Number(to - from), status_code: 0, status_message: null,
+  service_name: "agent", attributes_json: "{}",
+})
+const telemetry = [
+  { items: [span("child", "root", 10n, 20n), span("root", null, 0n, 100n)], ...page_() },
+  {
+    items: [{
+      id: "1", point_key: "p", metric_name: "tokens", description: "", unit: "1",
+      instrument_kind: "sum", start_time_unix_nano: null, time_unix_nano: nano(5n),
+      value_json: '{"type":"int","value":42}', attributes_json: "{}",
+    }],
+    ...page_(),
+  },
+]
+
 interface Fixtures {
   runs?: object[]
   /** Newest first, as the server returns them. */
@@ -56,6 +75,9 @@ async function mock(page: Page, fixtures: Fixtures = {}) {
     const path = url.pathname
     let json: object | undefined
     if (path === "/api/repositories") json = { repositories: [repository], ...page_() }
+    else if (path === "/api/repositories/1") json = repository
+    else if (path === "/api/repositories/1/runs") json = { runs: [run(1)], ...page_() }
+    else if (path.endsWith("/telemetry")) json = telemetry
     else if (path === "/api/repositories/1/worktrees") json = { worktrees: [worktree], ...page_() }
     else if (path === "/api/agent-runs") json = { runs: fixtures.runs ?? [run(1), run(2)], ...page_() }
     else if (path.endsWith("/events")) {
@@ -297,4 +319,96 @@ test("lists commands, filters the loaded ones and shows their detail", async ({ 
   await expect(detail).toContainText("/work/cortex")
   await expect(detail).toContainText("45.0 s")
   expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([])
+})
+
+test("shows Git history without presenting an inferred commit as exact", async ({ page }) => {
+  await mock(page, {
+    events: () => ({
+      events: [
+        event(1, {
+          kind: "git_head",
+          payload_json: JSON.stringify({
+            association: { trust: "correlated" },
+            source: { observation: { kind: "head", old_head_sha: "aaaaaaaaaa",
+              new_head_sha: "bbbbbbbbbb", payload: { fast_forward: false } } },
+          }),
+        }),
+      ],
+      next: null,
+    }),
+  })
+  await open(page, "?run=v1%7Crun%3A1&tab=git")
+  await expect(page.locator("[data-git-entry]")).toContainText("HEAD aaaaaaa → bbbbbbb")
+  await expect(page.locator("[data-git-entry]")).toContainText("history rewritten")
+  await expect(page.locator("[data-git-entry]")).toContainText("correlated")
+  await expect(page.getByText("No commit has been related to this run.")).toBeVisible()
+  expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([])
+})
+
+test("filters activity by kind on the server and shows safe detail", async ({ page }) => {
+  const requests = await mock(page, {
+    events: () => ({
+      events: [
+        event(1, { kind: "mcp", payload_json: JSON.stringify({ mcp_server: "cortex",
+          mcp_tool: "search", is_error: true, arguments: { q: "<img src=x>" } }) }),
+      ],
+      next: null,
+    }),
+  })
+  await open(page, "?run=v1%7Crun%3A1&tab=activity")
+  const row = page.locator("[data-activity-row]")
+  await expect(row).toContainText("cortex · search")
+  await expect(row).toContainText("failed")
+  await row.getByRole("button").click()
+  await expect(page.getByRole("dialog")).toContainText("<img src=x>")
+  expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([])
+  await page.keyboard.press("Escape")
+  await page.getByRole("button", { name: "Hooks", exact: true }).click()
+  await expect
+    .poll(() => requests.findLast((url) => url.pathname.endsWith("/events"))!.searchParams.getAll("kind"))
+    .toEqual(["hook"])
+})
+
+test("nests spans and tabulates metrics", async ({ page }) => {
+  await mock(page)
+  await open(page, "?run=v1%7Crun%3A1&tab=telemetry")
+  const spans = page.locator("[data-span-row]")
+  await expect(spans).toHaveCount(2)
+  await expect(spans.first()).toHaveAttribute("data-depth", "0")
+  await expect(spans.first()).toContainText("span root")
+  await expect(spans.last()).toHaveAttribute("data-depth", "1")
+  await expect(page.getByRole("cell", { name: "tokens" })).toBeVisible()
+  await expect(page.getByRole("cell", { name: "42" })).toBeVisible()
+  expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([])
+})
+
+test("lists evidence for a run and an overview for a repository", async ({ page }) => {
+  await mock(page)
+  await open(page, "?repository=1&run=v1%7Crun%3A1&tab=evidence")
+  await expect(page.getByRole("cell", { name: "/work/b" })).toBeVisible()
+  expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([])
+
+  await open(page, "?repository=1")
+  const overview = page.getByRole("region", { name: "Repository overview" })
+  if (await overview.isHidden()) return // Narrow screens show the run list instead.
+  await expect(overview.locator("[data-overview-worktree]")).toContainText("Active: codex session-1")
+  await expect(overview).toContainText("1 with uncommitted changes")
+  expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([])
+})
+
+test("every run view fits the width of the screen", async ({ page }) => {
+  await mock(page)
+  await open(page, "?run=v1%7Crun%3A1")
+  for (const name of [
+    "Timeline", "Transcript", "Commands", "Git", "Activity", "Telemetry", "Evidence",
+  ]) {
+    await page.getByRole("tab", { name }).click()
+    await expect(page.getByRole("tabpanel")).toBeVisible()
+    await page.waitForLoadState("networkidle")
+    const overflow = await page.evaluate(
+      () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+    )
+    expect(overflow, name).toBeLessThanOrEqual(0)
+    expect(await page.evaluate(() => window.innerWidth), name).toBe(page.viewportSize()!.width)
+  }
 })

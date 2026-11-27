@@ -326,14 +326,6 @@ pub fn router(state: ApiState) -> anyhow::Result<Router> {
             "GET /api/agent-runs/{run_key}/events",
             get(observatory_events),
         )
-        .contract_route(
-            "GET /api/agent-observatory/runs/{run_key}/telemetry",
-            get(observatory_telemetry),
-        )
-        .contract_route(
-            "GET /api/agent-runs/{run_key}/telemetry",
-            get(observatory_telemetry),
-        )
         .contract_route("GET /api/streams/logs", get(log_stream))
         .contract_route("GET /api/streams/sessions", get(session_stream))
         .merge(investigation::routes())
@@ -797,44 +789,6 @@ async fn observatory_events(
         .into_response(),
         Err(error) => respond::<()>(Err(error)),
     }
-}
-
-#[derive(Debug, Deserialize)]
-#[serde(deny_unknown_fields)]
-struct ObservatoryTelemetryQuery {
-    trace_id: Option<String>,
-    metric_name: Option<String>,
-    since_nano: Option<i64>,
-    until_nano: Option<i64>,
-    span_cursor: Option<String>,
-    metric_cursor: Option<String>,
-    span_limit: Option<usize>,
-    metric_limit: Option<usize>,
-}
-
-async fn observatory_telemetry(
-    State(state): State<ApiState>,
-    Path(run_key): Path<String>,
-    Query(query): Query<ObservatoryTelemetryQuery>,
-) -> impl IntoResponse {
-    respond(
-        state
-            .service
-            .observatory_telemetry(
-                run_key,
-                observatory::TelemetryQuery {
-                    trace_id: query.trace_id,
-                    metric_name: query.metric_name,
-                    since_nano: query.since_nano,
-                    until_nano: query.until_nano,
-                },
-                query.span_cursor,
-                query.metric_cursor,
-                query.span_limit.unwrap_or(100),
-                query.metric_limit.unwrap_or(100),
-            )
-            .await,
-    )
 }
 
 #[derive(Debug, Deserialize)]

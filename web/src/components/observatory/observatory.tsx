@@ -21,9 +21,14 @@ import { AuthProvider, useAuth } from "../../lib/observatory/auth-context"
 import { errorText, useAuthorizedCall, useRoute } from "../../lib/observatory/hooks"
 import { ConnectionCard } from "./connection-card"
 import { RepositoryNavigator } from "./repository-navigator"
+import { RepositoryOverview } from "./repository-overview"
+import { RunActivity } from "./run-activity"
 import { RunCommands } from "./run-commands"
+import { RunEvidence } from "./run-evidence"
+import { RunGit } from "./run-git"
 import { RunHeader } from "./run-header"
 import { RunList } from "./run-list"
+import { RunTelemetry } from "./run-telemetry"
 import { RunTimeline, TimelineFilters } from "./run-timeline"
 import { RunTranscript } from "./run-transcript"
 import { LoadError } from "./shared"
@@ -32,11 +37,14 @@ const RUN_TABS = [
   ["timeline", "Timeline"],
   ["transcript", "Transcript"],
   ["commands", "Commands"],
+  ["git", "Git"],
+  ["activity", "Activity"],
+  ["telemetry", "Telemetry"],
+  ["evidence", "Evidence"],
 ] as const
 
 function SelectedRun({ runKey }: { runKey: string }) {
   const { route, navigate } = useRoute()
-  // A shared address may name a view that does not exist yet.
   const tab = RUN_TABS.find(([value]) => value === route.tab)?.[0] ?? "timeline"
   const call = useAuthorizedCall()
   const [attempt, setAttempt] = useState(0)
@@ -64,10 +72,13 @@ function SelectedRun({ runKey }: { runKey: string }) {
       />
     )
   }
+  // Zero-minimum tracks keep wide content, such as the tab strip, scrolling
+  // inside its own box instead of widening the page.
   return (
-    <div className="grid gap-4">
+    <div className="grid grid-cols-1 gap-4">
       <RunHeader detail={result.detail} />
       <Tabs
+        className="min-w-0"
         value={tab}
         onValueChange={(value) => navigate({ tab: value as (typeof RUN_TABS)[number][0] })}
       >
@@ -78,7 +89,7 @@ function SelectedRun({ runKey }: { runKey: string }) {
             </TabsTrigger>
           ))}
         </TabsList>
-        <TabsContent value="timeline" className="grid gap-4">
+        <TabsContent value="timeline" className="grid grid-cols-1 gap-4">
           <TimelineFilters available={result.detail.available_event_kinds} />
           <RunTimeline key={route.kinds.join(",")} runKey={runKey} kinds={route.kinds} />
         </TabsContent>
@@ -87,6 +98,18 @@ function SelectedRun({ runKey }: { runKey: string }) {
         </TabsContent>
         <TabsContent value="commands">
           <RunCommands runKey={runKey} />
+        </TabsContent>
+        <TabsContent value="git">
+          <RunGit detail={result.detail} />
+        </TabsContent>
+        <TabsContent value="activity">
+          <RunActivity runKey={runKey} />
+        </TabsContent>
+        <TabsContent value="telemetry">
+          <RunTelemetry runKey={runKey} />
+        </TabsContent>
+        <TabsContent value="evidence">
+          <RunEvidence detail={result.detail} />
         </TabsContent>
       </Tabs>
     </div>
@@ -122,12 +145,14 @@ function Workspace() {
       </div>
       <div className={`min-w-0 ${route.run ? "" : "hidden md:block"}`}>
         {route.run ? (
-          <div className="grid gap-3">
+          <div className="grid grid-cols-1 gap-3">
             <Button type="button" className="justify-self-start md:hidden" onClick={() => navigate({ run: null })}>
               Back to runs
             </Button>
             <SelectedRun key={route.run} runKey={route.run} />
           </div>
+        ) : route.repository ? (
+          <RepositoryOverview key={route.repository} repositoryId={route.repository} />
         ) : (
           <EmptyState
             title="No run selected"
