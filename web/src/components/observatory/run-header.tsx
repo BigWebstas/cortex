@@ -4,6 +4,7 @@ import { useState } from "react"
 
 import { Badge, type BadgeTone } from "@/components/ui/aurora/badge"
 import { Button } from "@/components/ui/aurora/button"
+import { Input } from "@/components/ui/aurora/input"
 import {
   Sheet,
   SheetBody,
@@ -25,6 +26,42 @@ const ATTRIBUTION: Record<string, { tone: BadgeTone; label: string }> = {
   none: { tone: "neutral", label: "No worktree evidence" },
 }
 
+/**
+ * Browsers expose the clipboard only on HTTPS and localhost, so show the key
+ * for manual copying when it cannot be written.
+ */
+function CopyRunKey({ runKey }: { runKey: string }) {
+  const [result, setResult] = useState<"idle" | "copied" | "manual">("idle")
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(runKey)
+      setResult("copied")
+    } catch {
+      // Also reached when `navigator.clipboard` is undefined.
+      setResult("manual")
+    }
+  }
+
+  return (
+    <>
+      <Button type="button" size="sm" onClick={() => void copy()}>
+        {result === "copied" ? "Run key copied" : "Copy run key"}
+      </Button>
+      {result === "manual" && (
+        <label className="grid w-full gap-1 text-sm">
+          Copying is unavailable here. Select the run key and copy it.
+          <Input
+            readOnly
+            autoFocus
+            value={runKey}
+            onFocus={(event) => event.currentTarget.select()}
+          />
+        </label>
+      )}
+    </>
+  )
+}
+
 function Fact({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="min-w-0">
@@ -36,7 +73,6 @@ function Fact({ label, children }: { label: string; children: React.ReactNode })
 
 export function RunHeader({ detail }: { detail: AgentRunDetail }) {
   const { run, actors, worktree_evidence: evidence, commit_summary: commit } = detail
-  const [copied, setCopied] = useState(false)
   const worktree = attribution(evidence)
   const trust = ATTRIBUTION[worktree.state]
   const freshness = parseFreshness(run.freshness_json)
@@ -82,15 +118,7 @@ export function RunHeader({ detail }: { detail: AgentRunDetail }) {
             </SheetContent>
           </Sheet>
         )}
-        <Button
-          type="button"
-          size="sm"
-          onClick={() => {
-            void navigator.clipboard.writeText(run.run_key).then(() => setCopied(true))
-          }}
-        >
-          {copied ? "Run key copied" : "Copy run key"}
-        </Button>
+        <CopyRunKey runKey={run.run_key} />
       </div>
       <dl className="m-0 grid grid-cols-2 gap-2 lg:grid-cols-3">
         <Fact label="Status reason">{run.status_reason || "none given"}</Fact>

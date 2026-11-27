@@ -722,3 +722,10 @@ RED: not recorded as a separate run; first browser runs failed on heading order 
 GREEN: repository and worktree navigator with a mobile sheet; filtered, virtualized, cursor-paged run list; run header with worktree attribution and evidence; virtualized timeline with older pages, manual refresh and return to the newest events
 PROOF: lint, typecheck, 100 unit tests, the Aurora audit, the build, the web app Rust tests and 40 desktop and mobile browser tests passed, including 5,000-run and 10,000-event bounds, inert markup, and axe checks
 NOTES: not implemented: command palette, resizable panels, Aurora sidebar and data table, sort options, host, branch and time-range controls, and most keyboard shortcuts. Updates are manual until AO-095. Relative times are computed when a row mounts. Not tried against real data. The CI browser step now uses the same build environment as the bundle test
+
+## AO-089 and AO-090 Transcript and command views (partial)
+commit/worktree SHA: `feat/observatory-ui` (pre-commit proof)
+RED: not recorded as a separate run
+GREEN: added run tabs, a transcript view with recorded speakers, run-scoped search and tool-message folding, and a command list with filters and a detail sheet. Copy run key now offers the key for manual copying when the clipboard is unavailable
+PROOF: lint, typecheck, 111 unit tests, the Aurora audit, the build, the web app Rust tests and 48 browser tests passed
+NOTES: no jump to match, timestamp toggle or plan and task renderers. Command filters apply only to loaded commands and the page says so. Lists use a plain list rather than the Aurora data table and fetch payloads with each page. Not tried against real data

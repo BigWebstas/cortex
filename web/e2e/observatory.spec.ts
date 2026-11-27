@@ -198,3 +198,103 @@ test("keeps the reading position for older and newer events", async ({ page }) =
   await expect(page.locator('[data-event-id="63"]')).toBeVisible()
   await expect(back).toBeHidden()
 })
+
+for (const available of [true, false]) {
+  test(`copies the run key, ${available ? "with" : "without"} clipboard access`, async ({ page }) => {
+    await page.addInitScript((enabled) => {
+      Object.defineProperty(navigator, "clipboard", {
+        value: enabled
+          ? { writeText: async (text: string) => void Object.assign(window, { __copied: text }) }
+          : undefined,
+      })
+    }, available)
+    const errors: string[] = []
+    page.on("pageerror", (error) => errors.push(error.message))
+    await mock(page)
+    await open(page, "?run=v1%7Crun%3A1")
+
+    await page.getByRole("button", { name: "Copy run key" }).click()
+
+    if (available) {
+      await expect(page.getByRole("button", { name: "Run key copied" })).toBeVisible()
+      expect(await page.evaluate(() => (window as { __copied?: string }).__copied)).toBe("v1|run:1")
+    } else {
+      const field = page.getByLabel(/Copying is unavailable/)
+      await expect(field).toHaveValue("v1|run:1")
+      await expect(field).toBeFocused()
+      expect(
+        await field.evaluate((element: HTMLInputElement) =>
+          element.value.slice(element.selectionStart ?? 0, element.selectionEnd ?? 0),
+        ),
+      ).toBe("v1|run:1")
+      expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([])
+    }
+    expect(errors).toEqual([])
+  })
+}
+
+test("shows the transcript with recorded speakers, search and tool folding", async ({ page }) => {
+  const message = (index: number, event_kind: string, text: string) =>
+    event(index, {
+      payload_json: JSON.stringify({ message: text, metadata: { event_kind } }),
+    })
+  const requests = await mock(page, {
+    events: () => ({
+      events: [
+        message(3, "tool", "tool output"),
+        message(2, "assistant", "<b>not markup</b>"),
+        message(1, "user", "please run the tests"),
+      ],
+      next: null,
+    }),
+  })
+  await open(page, "?run=v1%7Crun%3A1")
+  await page.getByRole("tab", { name: "Transcript" }).click()
+  await expect(page).toHaveURL(/tab=transcript/)
+
+  const messages = page.locator("[data-speaker]")
+  await expect(messages).toHaveCount(3)
+  await expect(messages.first()).toContainText("please run the tests")
+  await expect(messages.nth(1)).toContainText("<b>not markup</b>")
+  expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([])
+  await page.getByRole("button", { name: "Hide tool messages" }).click()
+  await expect(messages).toHaveCount(2)
+  await expect(page.getByText("1 tool messages hidden")).toBeVisible()
+
+  await page.getByLabel("Search this transcript").fill("tests")
+  await page.getByLabel("Search this transcript").press("Enter")
+  await expect
+    .poll(() => requests.findLast((url) => url.pathname.endsWith("/events"))?.searchParams.get("query"))
+    .toBe("tests")
+  const sent = requests.findLast((url) => url.pathname.endsWith("/events"))!
+  expect(sent.searchParams.getAll("kind")).toEqual(["transcript", "provider_event"])
+  expect(sent.searchParams.get("include")).toBe("payload")
+})
+
+test("lists commands, filters the loaded ones and shows their detail", async ({ page }) => {
+  const command = (index: number, text: string, exit_status: number, duration_ms: number) =>
+    event(index, {
+      kind: "command",
+      payload_json: JSON.stringify({
+        command: text, cwd: "/work/cortex", exit_status, duration_ms,
+      }),
+    })
+  await mock(page, {
+    events: () => ({
+      events: [command(2, "git push", 1, 45_000), command(1, "cargo build", 0, 900)],
+      next: "older",
+    }),
+  })
+  await open(page, "?run=v1%7Crun%3A1&tab=commands")
+  const rows = page.locator("[data-command-row]")
+  await expect(rows).toHaveCount(2)
+  await expect(page.getByText("2 of 2 loaded commands shown; older commands are not loaded")).toBeVisible()
+
+  await page.getByRole("button", { name: "Failed", exact: true }).click()
+  await expect(rows).toHaveCount(1)
+  await rows.getByRole("button").click()
+  const detail = page.getByRole("dialog")
+  await expect(detail).toContainText("/work/cortex")
+  await expect(detail).toContainText("45.0 s")
+  expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([])
+})
