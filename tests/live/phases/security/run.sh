@@ -64,7 +64,7 @@ security_phase_run() {
   while IFS=$'\t' read -r surface path; do
     case "$path" in
       '/app/{*path}') path=/app/contract-probe ;;
-      '/app/assets/{*path}') path=/app/assets/app.js ;;
+      '/app/assets/{*path}') path=/app/assets/cytoscape-3.34.0.min.js ;;
     esac
     safe="${surface//[^a-zA-Z0-9._-]/-}"
     positive="artifacts/security/surfaces/$safe.semantic-positive.json"

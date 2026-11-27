@@ -22,7 +22,6 @@ async fn get(path: &str) -> axum::response::Response {
 #[tokio::test]
 async fn app_route_serves_workspace_shell_with_no_store_and_strict_csp() {
     let response = get("/app/investigate").await;
-    assert_eq!(response.status(), StatusCode::OK);
     assert_eq!(
         response.headers().get(header::CACHE_CONTROL).unwrap(),
         "no-store"
@@ -46,17 +45,28 @@ async fn app_route_serves_workspace_shell_with_no_store_and_strict_csp() {
         !csp.contains("script-src 'self' 'unsafe-inline'") && !csp.contains("unsafe-eval"),
         "script-src must never allow unsafe-inline or unsafe-eval: {csp}"
     );
+    let status = response.status();
     let body = to_bytes(response.into_body(), usize::MAX).await.unwrap();
-    let html = String::from_utf8(body.to_vec()).unwrap();
-    assert!(html.contains("Cortex investigation workspace"));
-    assert!(!html.contains("CORTEX_API_TOKEN="));
-    assert!(html.contains("data-clear-token"));
+    let text = String::from_utf8(body.to_vec()).unwrap();
+    if EMBEDDED_WEB_BUNDLE {
+        assert_eq!(status, StatusCode::OK);
+        assert!(text.contains("Cortex investigation workspace"));
+        assert!(!text.contains("CORTEX_API_TOKEN="));
+        assert!(text.contains("data-clear-token"));
+    } else {
+        assert_eq!(status, StatusCode::SERVICE_UNAVAILABLE);
+        assert!(text.contains("pnpm --dir web build"));
+    }
 }
 
 #[tokio::test]
 async fn app_spa_fallback_is_scoped_under_app_only() {
     let response = get("/app/some/deep/link").await;
-    assert_eq!(response.status(), StatusCode::OK);
+    if EMBEDDED_WEB_BUNDLE {
+        assert_eq!(response.status(), StatusCode::OK);
+    } else {
+        assert_eq!(response.status(), StatusCode::SERVICE_UNAVAILABLE);
+    }
 
     for path in ["/api/stats", "/mcp", "/health", "/v1/logs"] {
         let response = get(path).await;
@@ -71,6 +81,8 @@ async fn app_rejects_traversal_and_missing_static_assets() {
         "/app/assets/%2e%2e/index.html",
         "/app/_next/static/does-not-exist.js",
         "/app/assets/missing.js",
+        "/app/assets/app.js",
+        "/app/assets/app.css",
         "/app/bundle.js.map",
     ] {
         let response = get(path).await;
@@ -80,6 +92,12 @@ async fn app_rejects_traversal_and_missing_static_assets() {
 
 #[tokio::test]
 async fn app_assets_have_expected_cache_policy_and_head_support() {
+    if !EMBEDDED_WEB_BUNDLE {
+        let response = get("/app/assets/cytoscape-3.34.0.min.js").await;
+        assert_eq!(response.status(), StatusCode::NOT_FOUND);
+        return;
+    }
+
     let response = get("/app/assets/cytoscape-3.34.0.min.js").await;
     assert_eq!(response.status(), StatusCode::OK);
     assert_eq!(
@@ -204,7 +222,7 @@ async fn next_workspace_sources_avoid_unsafe_html_sinks_and_token_storage() {
 
 #[tokio::test]
 async fn graph_dependency_is_pinned_and_documented() {
-    assert!(CYTOSCAPE_JS.contains("cytoscape"));
+    assert!(include_str!("../web/vendor/cytoscape-3.34.0.min.js").contains("cytoscape"));
     assert!(include_str!("../web/vendor/THIRD_PARTY.md").contains("Version: `3.34.0`"));
     assert!(
         include_str!("../web/vendor/cytoscape-3.34.0.package.json")

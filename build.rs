@@ -5,9 +5,6 @@ use std::path::{Path, PathBuf};
 fn main() {
     println!("cargo:rerun-if-env-changed=CORTEX_REQUIRE_WEB_BUNDLE");
     println!("cargo:rerun-if-changed=web/out/cortex-assets.json");
-    println!("cargo:rerun-if-changed=web/app/index.html");
-    println!("cargo:rerun-if-changed=web/app/app.css");
-    println!("cargo:rerun-if-changed=web/app/app.js");
     println!("cargo:rerun-if-changed=web/vendor/cytoscape-3.34.0.min.js");
 
     let manifest_dir = PathBuf::from(env::var("CARGO_MANIFEST_DIR").expect("CARGO_MANIFEST_DIR"));

@@ -39,7 +39,7 @@ for (const route of ["/app/", "/app/investigate/", "/app/agents/"]) {
   })
 }
 
-for (const route of ["/app/", "/app/agents/"]) {
+for (const route of ["/app/", "/app/investigate/", "/app/agents/"]) {
   test(`${route} has no accessibility violations with the Aurora palette`, async ({ page }) => {
     await page.goto(route, { waitUntil: "networkidle" })
     expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([])

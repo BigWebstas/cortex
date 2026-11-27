@@ -2,6 +2,17 @@
 
 import { useEffect, useRef, useState } from "react"
 
+import { Button } from "@/components/ui/aurora/button"
+import { Card, CardFooter, CardHeader } from "@/components/ui/aurora/card"
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/aurora/select"
 import type { GraphEdgeData, GraphElements, GraphNodeData } from "../../lib/host-sources"
 
 type LayoutName = "cose" | "concentric" | "breadthfirst"
@@ -12,7 +23,11 @@ interface CytoscapeInstance {
   add: (elements: GraphElements) => void
   layout: (options: Record<string, unknown>) => { run: () => void }
   fit: (eles?: unknown, padding?: number) => void
-  on: (event: string, selector: string, handler: (event: { target: { data: () => unknown } }) => void) => void
+  on: (
+    event: string,
+    selector: string,
+    handler: (event: { target: { data: () => unknown } }) => void,
+  ) => void
   destroy: () => void
 }
 
@@ -187,7 +202,12 @@ export function GraphCanvas({
           },
           {
             selector: "node[?is_focus]",
-            style: { width: 52, height: 52, "border-width": 4, "border-color": theme.accentStrong },
+            style: {
+              width: 52,
+              height: 52,
+              "border-width": 4,
+              "border-color": theme.accentStrong,
+            },
           },
           {
             selector: "edge",
@@ -208,11 +228,19 @@ export function GraphCanvas({
           },
           {
             selector: 'edge[trust_level = "verified"]',
-            style: { "line-color": theme.success, "target-arrow-color": theme.success, width: 2.5 },
+            style: {
+              "line-color": theme.success,
+              "target-arrow-color": theme.success,
+              width: 2.5,
+            },
           },
           {
             selector: 'edge[trust_level = "claimed"]',
-            style: { "line-style": "dashed", "line-color": theme.warn, "target-arrow-color": theme.warn },
+            style: {
+              "line-style": "dashed",
+              "line-color": theme.warn,
+              "target-arrow-color": theme.warn,
+            },
           },
           {
             selector: 'edge[trust_level = "inferred"], edge[trust_level = "weak"]',
@@ -282,9 +310,11 @@ export function GraphCanvas({
     }
   }, [highlightedRelationshipIds, highlightedEntityIds, elements, libraryState])
 
+  const hasElements = elements.nodes.length > 0 || elements.edges.length > 0
+
   return (
-    <div className="aurora-surface overflow-hidden">
-      <div className="aurora-panel-head">
+    <Card className="overflow-hidden">
+      <CardHeader className="flex flex-wrap items-center justify-between gap-2.5 bg-[var(--aurora-panel-medium)]">
         <div>
           <span className="aurora-meta-label">Graph canvas</span>
           <h2 className="m-0 text-[15px] font-bold">
@@ -294,52 +324,60 @@ export function GraphCanvas({
             </span>
           </h2>
         </div>
-        <div className="flex flex-wrap items-center gap-2" role="toolbar" aria-label="Graph controls">
-          <label className="sr-only" htmlFor="graph-layout-select">
-            Graph layout
-          </label>
-          <select
-            id="graph-layout-select"
-            className="aurora-select !w-auto !py-1.5 !text-xs"
-            value={layout}
-            onChange={(event) => setLayout(event.target.value as LayoutName)}
-          >
-            <option value="cose">Force (COSE)</option>
-            <option value="concentric">Concentric</option>
-            <option value="breadthfirst">Hierarchy</option>
-          </select>
-          <button
+        <div
+          className="flex flex-wrap items-center gap-2"
+          role="toolbar"
+          aria-label="Graph controls"
+        >
+          <Select value={layout} onValueChange={(value) => setLayout(value as LayoutName)}>
+            <SelectTrigger
+              id="graph-layout-select"
+              aria-label="Graph layout"
+              className="h-8 w-auto min-w-[130px] text-xs"
+            >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="cose">Force (COSE)</SelectItem>
+              <SelectItem value="concentric">Concentric</SelectItem>
+              <SelectItem value="breadthfirst">Hierarchy</SelectItem>
+            </SelectContent>
+          </Select>
+          <Button
             type="button"
-            className="aurora-btn-secondary"
+            size="sm"
+            variant="neutral"
             data-fit-graph
             onClick={() => cyRef.current?.fit(undefined, 36)}
           >
             Fit
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
-            className="aurora-btn-secondary"
+            size="sm"
+            variant="neutral"
             disabled={!canDrillDown || isBusy}
             onClick={onExpandSelected}
           >
             Expand
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
-            className="aurora-btn-secondary"
+            size="sm"
+            variant="neutral"
             disabled={!canDrillDown || isBusy}
             onClick={onExplainSelected}
           >
             Explain node
-          </button>
-          <button type="button" className="aurora-btn-secondary" onClick={onResetFleet}>
+          </Button>
+          <Button type="button" size="sm" variant="neutral" onClick={onResetFleet}>
             Fleet view
-          </button>
-          <button type="button" className="aurora-btn-secondary" data-refresh onClick={onRefresh}>
+          </Button>
+          <Button type="button" size="sm" variant="neutral" data-refresh onClick={onRefresh}>
             Refresh
-          </button>
+          </Button>
         </div>
-      </div>
+      </CardHeader>
 
       <div className="relative">
         <div
@@ -350,7 +388,7 @@ export function GraphCanvas({
           aria-label="Interactive investigation graph"
         />
         {libraryState === "error" && (
-          <div className="absolute inset-0 flex items-center justify-center bg-[#081721]/90 p-4 text-center">
+          <div className="absolute inset-0 flex items-center justify-center bg-[var(--aurora-page-bg)]/90 p-4 text-center">
             <p className="text-sm text-[var(--aurora-warn)]">
               Vendored graph renderer (/app/assets/cytoscape-3.34.0.min.js) could not load. Use the
               entity selector below to inspect nodes and edges.
@@ -359,8 +397,8 @@ export function GraphCanvas({
         )}
       </div>
 
-      <div className="border-t border-[var(--aurora-border-default)] bg-[var(--aurora-panel-medium)] px-3.5 py-2.5">
-        <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-[var(--aurora-text-muted)]">
+      <CardFooter className="bg-[var(--aurora-panel-medium)] px-3.5 py-2.5">
+        <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-[var(--aurora-text-muted)] w-full">
           <div className="flex flex-wrap items-center gap-3">
             <span>
               <strong className="text-[var(--aurora-success)]">Solid green</strong> verified
@@ -379,12 +417,10 @@ export function GraphCanvas({
             <label htmlFor="quick-node-select" className="aurora-meta-label">
               Inspect:
             </label>
-            <select
-              id="quick-node-select"
-              className="aurora-select !w-auto !max-w-[220px] !py-1 !text-xs"
+            <Select
               value={selectedNodeId ?? selectedEdgeId ?? ""}
-              onChange={(event) => {
-                const value = event.target.value
+              disabled={!hasElements}
+              onValueChange={(value) => {
                 const node = elements.nodes.find((item) => item.data.id === value)
                 if (node) {
                   onSelectNode(node.data)
@@ -394,27 +430,49 @@ export function GraphCanvas({
                 if (edge) onSelectEdge(edge.data)
               }}
             >
-              <option value="">Select node or edge...</option>
-              <optgroup label="Nodes">
-                {elements.nodes.map((node) => (
-                  <option key={node.data.id} value={node.data.id}>
-                    {node.data.label} ({node.data.kind})
-                  </option>
-                ))}
-              </optgroup>
-              {elements.edges.length > 0 && (
-                <optgroup label="Relationships">
-                  {elements.edges.map((edge) => (
-                    <option key={edge.data.id} value={edge.data.id}>
-                      {edge.data.label}: {edge.data.source} → {edge.data.target}
-                    </option>
-                  ))}
-                </optgroup>
-              )}
-            </select>
+              <SelectTrigger
+                id="quick-node-select"
+                aria-label="Inspect node or edge"
+                data-node-count={elements.nodes.length}
+                data-edge-count={elements.edges.length}
+                className="h-8 w-auto min-w-[180px] max-w-[240px] text-xs"
+              >
+                <SelectValue placeholder="Select node or edge..." />
+              </SelectTrigger>
+              <SelectContent>
+                {elements.nodes.length > 0 && (
+                  <SelectGroup>
+                    <SelectLabel>Nodes</SelectLabel>
+                    {elements.nodes.map((node) => (
+                      <SelectItem
+                        key={node.data.id}
+                        value={node.data.id}
+                        data-node-id={node.data.id}
+                      >
+                        {node.data.label} ({node.data.kind})
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                )}
+                {elements.edges.length > 0 && (
+                  <SelectGroup>
+                    <SelectLabel>Relationships</SelectLabel>
+                    {elements.edges.map((edge) => (
+                      <SelectItem
+                        key={edge.data.id}
+                        value={edge.data.id}
+                        data-edge-id={edge.data.id}
+                      >
+                        {edge.data.label}: {edge.data.source} → {edge.data.target}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                )}
+              </SelectContent>
+            </Select>
           </div>
         </div>
-      </div>
-    </div>
+      </CardFooter>
+    </Card>
   )
 }

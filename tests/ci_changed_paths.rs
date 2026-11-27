@@ -83,7 +83,7 @@ fn rust_changes_enable_runtime_security_release_and_mcp_smoke() {
 
 #[test]
 fn web_changes_enable_web_docker_and_release_without_rust_tests() {
-    let out = classify("pull_request", &["web/app/app.js"]);
+    let out = classify("pull_request", &["web/app/investigate/page.tsx"]);
     assert_eq!(out["web"], "true");
     assert_eq!(out["docker"], "true");
     assert_eq!(out["release"], "true");

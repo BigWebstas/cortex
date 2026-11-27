@@ -24,17 +24,12 @@ struct EmbeddedAsset {
 
 include!(concat!(env!("OUT_DIR"), "/web_assets.rs"));
 
-const LEGACY_INDEX_HTML: &str = include_str!("../web/app/index.html");
-const LEGACY_APP_CSS: &str = include_str!("../web/app/app.css");
-const LEGACY_APP_JS: &str = include_str!("../web/app/app.js");
-const CYTOSCAPE_JS: &str = include_str!("../web/vendor/cytoscape-3.34.0.min.js");
-
 // Cytoscape positions its canvas layers with element style properties. CSP
 // treats those properties as inline styles, so the workspace permits inline
 // style rules while script execution never receives unsafe-inline or unsafe-eval.
-const LEGACY_CSP: &str = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self'; \
-                          font-src 'self'; img-src 'self' data:; object-src 'none'; base-uri 'none'; form-action 'none'; \
-                          frame-ancestors 'none'; worker-src 'self'; manifest-src 'self'";
+const DEFAULT_CSP: &str = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self'; \
+                           font-src 'self'; img-src 'self' data:; object-src 'none'; base-uri 'none'; form-action 'none'; \
+                           frame-ancestors 'none'; worker-src 'self'; manifest-src 'self'";
 const NO_STORE: &str = "no-store";
 const IMMUTABLE: &str = "public, max-age=31536000, immutable";
 
@@ -59,7 +54,7 @@ async fn serve_app(OriginalUri(uri): OriginalUri, headers: HeaderMap) -> Respons
     if looks_like_static_asset_path(path) {
         return not_found();
     }
-    serve_legacy_index()
+    bundle_unavailable()
 }
 
 async fn serve_asset(
@@ -70,13 +65,10 @@ async fn serve_asset(
     if has_unsafe_path_syntax(uri.path()) || has_unsafe_path_syntax(&path) {
         return not_found();
     }
-    if EMBEDDED_WEB_BUNDLE {
-        if let Some(asset) = find_asset(uri.path()) {
-            return asset_response(asset, &headers);
-        }
-        return not_found();
+    if EMBEDDED_WEB_BUNDLE && let Some(asset) = find_asset(uri.path()) {
+        return asset_response(asset, &headers);
     }
-    serve_legacy_asset(&path)
+    not_found()
 }
 
 fn serve_embedded_route(path: &str, headers: &HeaderMap) -> Response {
@@ -198,41 +190,14 @@ fn apply_common_headers(
     }
 }
 
-fn serve_legacy_index() -> Response {
+fn bundle_unavailable() -> Response {
     text_response(
-        StatusCode::OK,
-        "text/html; charset=utf-8",
+        StatusCode::SERVICE_UNAVAILABLE,
+        "text/plain; charset=utf-8",
         NO_STORE,
-        LEGACY_CSP,
-        LEGACY_INDEX_HTML,
+        DEFAULT_CSP,
+        "Cortex web bundle is not embedded in this build. Run `pnpm --dir web build` before compiling.",
     )
-}
-
-fn serve_legacy_asset(path: &str) -> Response {
-    match path {
-        "app.css" => text_response(
-            StatusCode::OK,
-            "text/css; charset=utf-8",
-            NO_STORE,
-            LEGACY_CSP,
-            LEGACY_APP_CSS,
-        ),
-        "app.js" => text_response(
-            StatusCode::OK,
-            "application/javascript; charset=utf-8",
-            NO_STORE,
-            LEGACY_CSP,
-            LEGACY_APP_JS,
-        ),
-        "cytoscape-3.34.0.min.js" => text_response(
-            StatusCode::OK,
-            "application/javascript; charset=utf-8",
-            IMMUTABLE,
-            LEGACY_CSP,
-            CYTOSCAPE_JS,
-        ),
-        _ => not_found(),
-    }
 }
 
 fn not_found() -> Response {
@@ -240,7 +205,7 @@ fn not_found() -> Response {
         StatusCode::NOT_FOUND,
         "text/plain; charset=utf-8",
         NO_STORE,
-        LEGACY_CSP,
+        DEFAULT_CSP,
         "not found",
     )
 }

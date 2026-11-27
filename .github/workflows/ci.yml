@@ -596,8 +596,6 @@ jobs:
           node-version: 22
       - name: Test npm launcher
         run: npm test --prefix packages/cortex-rmcp
-      - name: Verify browser request ownership
-        run: node --test tests/web/request-races.test.cjs
       - name: Verify review failure-path regressions
         run: |
           python3 tests/live/selftest/review-regressions.py

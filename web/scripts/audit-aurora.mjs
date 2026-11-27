@@ -124,7 +124,7 @@ export function auditComponents(lock, root, exceptions) {
       if (!tracked.has(path)) problems.push(`${path}: untracked file in a vendored directory`)
       continue
     }
-    if (tracked.has(path) || !/\.(tsx|jsx|ts|js)$/.test(path) || path === "app/app.js") continue
+    if (tracked.has(path) || !/\.(tsx|jsx|ts|js)$/.test(path)) continue
     const found = featureProblems(readFileSync(join(root, path), "utf8"))
     if (found.length === 0) continue
     const entry = excused.get(path)

@@ -58,7 +58,15 @@ async function connect(page: Page, token = "browser-fixture-token") {
 }
 
 async function selectNode(page: Page, hostId: string) {
-  await page.locator("#quick-node-select").selectOption(`source:heartbeat:${hostId}`)
+  await page.locator("#quick-node-select").click()
+  await page.locator(`[data-node-id="source:heartbeat:${hostId}"]`).click()
+}
+
+async function expectEmptyGraphSelector(page: Page) {
+  const trigger = page.locator("#quick-node-select")
+  await expect(trigger).toHaveAttribute("data-node-count", "0")
+  await expect(trigger).toHaveAttribute("data-edge-count", "0")
+  await expect(trigger).toBeDisabled()
 }
 
 async function ask(page: Page, prompt: string) {
@@ -87,7 +95,7 @@ test("inspector avoids ambiguous device evidence and clears on disconnect and re
   await expect(page.locator("[data-selected-title]")).toHaveText("Nothing selected")
   await expect(page.locator("[data-log-status]")).toHaveText("Disconnected")
   await expect(evidence).not.toContainText("Unique private log")
-  await expect(page.locator("#quick-node-select option")).toHaveCount(1)
+  await expectEmptyGraphSelector(page)
 
   await connect(page)
   await selectNode(page, "unique")
@@ -105,7 +113,7 @@ test("empty successful investigation has an explicit empty graph", async ({ page
 
   await expect(page.locator("[data-answer-stack]")).toHaveAttribute("data-ask-state", "complete")
   await expect(page.locator("[data-evidence-list]")).toContainText("No graph entities returned")
-  await expect(page.locator("#quick-node-select option")).toHaveCount(1)
+  await expectEmptyGraphSelector(page)
 })
 
 for (const action of ["clear", "replace token"] as const) {
@@ -195,5 +203,80 @@ test("a graph response that arrives after disconnect is discarded", async ({ pag
       }),
   )
 
-  await expect(page.locator("#quick-node-select option")).toHaveCount(1)
+  await expectEmptyGraphSelector(page)
+})
+
+test("latest Ask wins even when an older Ask completes last", async ({ page }) => {
+  await mockApi(page)
+  let releaseOld: (() => void) | undefined
+  const oldGate = new Promise<void>((resolve) => {
+    releaseOld = resolve
+  })
+  let askCount = 0
+  await page.route("**/api/v1/investigations/ask", async (route) => {
+    askCount += 1
+    if (askCount === 1) {
+      await oldGate
+      await route.fulfill({
+        json: askEnvelope([
+          {
+            claim_type: "open_question",
+            title: "OLD stale claim",
+            summary: "Should be superseded",
+            confidence: "low",
+            relationship_ids: [],
+            evidence_ids: [],
+          },
+        ]),
+      })
+      return
+    }
+    await route.fulfill({
+      json: askEnvelope([
+        {
+          claim_type: "verified",
+          title: "NEW latest claim",
+          summary: "Current answer wins",
+          confidence: "high",
+          relationship_ids: [],
+          evidence_ids: [],
+        },
+      ]),
+    })
+  })
+
+  await page.goto("/app/investigate/")
+  await connect(page)
+  const firstReq = page.waitForRequest("**/api/v1/investigations/ask")
+  await ask(page, "old question")
+  await firstReq
+  // Trigger a second concurrent Ask via host pivot in the timeline while the first is in flight.
+  await page.locator("[data-timeline]").getByRole("button", { name: "unique" }).click()
+
+  await expect(page.locator("[data-answer-stack]")).toHaveAttribute("data-ask-state", "complete")
+  await expect(page.locator("[data-answer-stack]")).toContainText("NEW latest claim")
+
+  releaseOld?.()
+  await page.evaluate(
+    () =>
+      new Promise<void>((resolve) => {
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve()))
+      }),
+  )
+
+  await expect(page.locator("[data-answer-stack]")).toContainText("NEW latest claim")
+  await expect(page.locator("[data-answer-stack]")).not.toContainText("OLD stale claim")
+  await expect(page.locator("[data-answer-stack]")).toHaveAttribute("data-ask-state", "complete")
+})
+
+test("current Ask network failure replaces stale content with failed state", async ({ page }) => {
+  await mockApi(page)
+  await page.route("**/api/v1/investigations/ask", (route) => route.abort("failed"))
+
+  await page.goto("/app/investigate/")
+  await connect(page)
+  await ask(page, "force api failure")
+
+  await expect(page.locator("[data-answer-stack]")).toHaveAttribute("data-ask-state", "failed")
+  await expect(page.locator("[data-answer-stack] h2")).toHaveText("Ask failed")
 })

@@ -68,7 +68,7 @@ fn rust_change_runs_clippy_without_full_tests() {
 
 #[test]
 fn web_change_runs_focused_web_tests() {
-    let plan = plan_for(&["web/app/app.js"], false);
+    let plan = plan_for(&["web/app/investigate/page.tsx"], false);
     assert!(plan.contains(&"web-app-tests"));
     assert!(!plan.contains(&"full-tests"));
 }

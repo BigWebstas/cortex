@@ -10,10 +10,7 @@ export interface WorkspaceShellProps {
 
 export function WorkspaceShell({ activeRoute, children }: WorkspaceShellProps) {
   return (
-    <div
-      className={`aurora-workspace${activeRoute === "investigate" ? " cortex-legacy-theme" : ""}`}
-      data-app-root
-    >
+    <div className="aurora-workspace" data-app-root>
       <aside className="aurora-nav" aria-label="Workspace navigation">
         <Link className="aurora-brand" href="/investigate/" aria-label="Cortex investigation workspace">
           <span className="aurora-brand-mark" aria-hidden="true" />

@@ -292,3 +292,34 @@ test("connects, runs Ask + Explain, inspects evidence proof, and clears token wi
   await expect(page.getByText("Bearer token cleared")).toBeVisible()
   await expect(page.locator("[data-server-version]")).toHaveText("--")
 })
+
+test("401 unauthorized clears bearer token without storage and deep links load investigate", async ({
+  page,
+}) => {
+  await page.route("**/api/**", (route) =>
+    route.fulfill({
+      status: 401,
+      contentType: "application/json",
+      body: JSON.stringify({ error: "unauthorized" }),
+    }),
+  )
+
+  await page.goto("/app/investigate/some/deep/link")
+  await expect(
+    page.getByRole("heading", { level: 1, name: "Cortex investigation workspace" }),
+  ).toBeVisible()
+
+  await page.getByLabel("Bearer token").fill("invalid-token")
+  await page.getByRole("button", { name: "Connect" }).click()
+
+  await expect(page.locator("[data-answer-stack] h2")).toHaveText("Authentication rejected (401)")
+  await expect(page.getByLabel("Bearer token")).toHaveValue("")
+  await expect(page.locator("[data-server-version]")).toHaveText("--")
+
+  const storageState = await page.evaluate(() => ({
+    localLen: window.localStorage.length,
+    sessionLen: window.sessionStorage.length,
+    cookies: document.cookie,
+  }))
+  expect(storageState).toEqual({ localLen: 0, sessionLen: 0, cookies: "" })
+})

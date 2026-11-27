@@ -37,7 +37,7 @@ cargo xtask pre-push
 
 `Justfile` loads `.env` for every recipe. Its test/coverage recipes remove ambient auth variables deliberately; preserve that behavior when adding test commands. `just release` also runs `link-bin`: use `cargo build --release --locked` for a build that should not replace the installed CLI. Full gates and coverage commands are in [CONTRIBUTING.md](CONTRIBUTING.md).
 
-The `web/package.json` pins pnpm. Run `lint`, `typecheck`, `test`, and `build` with `pnpm --dir web`. `src/web_app.rs` serves the embedded Next export from `web/out/`, falling back to `web/app/index.html`, `app.js`, and `app.css` when none is bundled. Playwright tests served assets through an isolated Rust router and intercepted API fixtures. Live qualification requires separate prerequisites and target grants: [LIVE_QUALIFICATION.md](docs/LIVE_QUALIFICATION.md).
+The `web/package.json` pins pnpm. Run `lint`, `typecheck`, `test`, and `build` with `pnpm --dir web`. `src/web_app.rs` serves the embedded Next export from `web/out/`, returning `503 Service Unavailable` for `/app` routes when built without a bundle. Playwright tests served assets through an isolated Rust router and intercepted API fixtures. Live qualification requires separate prerequisites and target grants: [LIVE_QUALIFICATION.md](docs/LIVE_QUALIFICATION.md).
 
 For registry or guide changes, run:
 

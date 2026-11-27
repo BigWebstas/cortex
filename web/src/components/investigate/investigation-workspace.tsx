@@ -1,7 +1,12 @@
 "use client"
 
-import { type FormEvent, useCallback, useMemo, useRef, useState } from "react"
+import { type FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react"
 
+import { Badge } from "@/components/ui/aurora/badge"
+import { Banner } from "@/components/ui/aurora/banner"
+import { Button } from "@/components/ui/aurora/button"
+import { Card, CardContent } from "@/components/ui/aurora/card"
+import { Input } from "@/components/ui/aurora/input"
 import {
   type AppEntitySummary,
   type AppGraphEvidenceResponse,
@@ -34,6 +39,7 @@ import {
   getServerStats,
   getServerVersion,
 } from "../../lib/investigation-api"
+import { AuthProvider, useAuth } from "../../lib/observatory/auth-context"
 import { AskPanel, type StatusCardMessage } from "./ask-panel"
 import { EvidencePanel, type InspectorSelection } from "./evidence-panel"
 import { GraphCanvas } from "./graph-canvas"
@@ -46,16 +52,26 @@ interface V1Status {
 }
 
 const INITIAL_STATUS_CARD: StatusCardMessage = {
-  tone: "violet",
+  tone: "cyan",
   badge: "Ready",
   title: "Enter a token to load live evidence.",
   body: "The app keeps the bearer token in memory only. It is never embedded in the HTML or written to local storage.",
 }
 
-export function InvestigationWorkspace() {
-  // Bearer token lives in React memory state only; never persisted to storage or URL.
-  const [bearerToken, setBearerToken] = useState("")
-  const [tokenInput, setTokenInput] = useState("")
+function linkAbortSignal(parent: AbortSignal): { controller: AbortController; detach: () => void } {
+  const controller = new AbortController()
+  if (parent.aborted) {
+    controller.abort()
+    return { controller, detach: () => {} }
+  }
+  const onAbort = () => controller.abort()
+  parent.addEventListener("abort", onAbort, { once: true })
+  return { controller, detach: () => parent.removeEventListener("abort", onAbort) }
+}
+
+function InvestigationWorkspaceInner() {
+  const { session, snapshot } = useAuth()
+  const connected = snapshot.status === "connected"
 
   const [serverVersion, setServerVersion] = useState("Unknown")
   const [schemaVersion, setSchemaVersion] = useState("Waiting for token")
@@ -96,13 +112,17 @@ export function InvestigationWorkspace() {
   const [proofError, setProofError] = useState<string | null>(null)
   const [isGraphBusy, setIsGraphBusy] = useState(false)
 
+  const tokenFormRef = useRef<HTMLFormElement | null>(null)
   const generationRef = useRef(0)
   const abortRef = useRef<AbortController | null>(null)
+  const detachSignalRef = useRef<(() => void) | null>(null)
 
-  const beginRequest = useCallback(() => {
+  const beginRequest = useCallback((sessionSignal: AbortSignal) => {
     abortRef.current?.abort()
-    const controller = new AbortController()
+    detachSignalRef.current?.()
+    const { controller, detach } = linkAbortSignal(sessionSignal)
     abortRef.current = controller
+    detachSignalRef.current = detach
     const generation = ++generationRef.current
     return { generation, signal: controller.signal }
   }, [])
@@ -119,6 +139,8 @@ export function InvestigationWorkspace() {
   const resetSessionData = useCallback(() => {
     abortRef.current?.abort()
     abortRef.current = null
+    detachSignalRef.current?.()
+    detachSignalRef.current = null
     ++generationRef.current
     setServerVersion("--")
     setSchemaVersion("Schema --")
@@ -145,24 +167,32 @@ export function InvestigationWorkspace() {
   }, [resetEvidenceInspector])
 
   const clearSessionState = useCallback(
-    (reasonCard: StatusCardMessage) => {
+    (reasonCard: StatusCardMessage, mode: "clear" | "unauthorized" = "clear", epoch?: number) => {
+      tokenFormRef.current?.reset()
       resetSessionData()
-      setBearerToken("")
-      setTokenInput("")
+      if (mode === "unauthorized") {
+        session.unauthorized(epoch)
+      } else {
+        session.clear()
+      }
       setStatusCard(reasonCard)
     },
-    [resetSessionData],
+    [resetSessionData, session],
   )
 
   const handleUnauthorizedIfNeeded = useCallback(
-    (error: unknown): boolean => {
-      if (error instanceof CortexApiError && error.status === 401) {
-        clearSessionState({
-          tone: "error",
-          badge: "Unauthorized",
-          title: "Authentication rejected (401)",
-          body: "The bearer token was cleared from memory. Enter a valid CORTEX_API_TOKEN to reconnect.",
-        })
+    (error: unknown, epoch: number): boolean => {
+      if (error instanceof CortexApiError && (error.status === 401 || error.status === 403)) {
+        clearSessionState(
+          {
+            tone: "error",
+            badge: "Unauthorized",
+            title: "Authentication rejected (401)",
+            body: "The bearer token was cleared from memory. Enter a valid CORTEX_API_TOKEN to reconnect.",
+          },
+          "unauthorized",
+          epoch,
+        )
         return true
       }
       return false
@@ -171,8 +201,8 @@ export function InvestigationWorkspace() {
   )
 
   const refreshWithToken = useCallback(
-    async (token: string) => {
-      const { generation, signal } = beginRequest()
+    async (token: string, epoch: number, sessionSignal: AbortSignal) => {
+      const { generation, signal } = beginRequest(sessionSignal)
       setAskState("idle")
       resetEvidenceInspector()
       if (!token) {
@@ -188,7 +218,7 @@ export function InvestigationWorkspace() {
       try {
         try {
           const v1 = await getInvestigationVersion(token, signal)
-          if (generation !== generationRef.current) return
+          if (generation !== generationRef.current || signal.aborted) return
           if (v1.ui_version && v1.ui_version !== INVESTIGATION_UI_VERSION) {
             setV1Status({
               title: "Version skew",
@@ -203,8 +233,8 @@ export function InvestigationWorkspace() {
             })
           }
         } catch (v1Error) {
-          if (generation !== generationRef.current) return
-          if (handleUnauthorizedIfNeeded(v1Error)) return
+          if (generation !== generationRef.current || signal.aborted) return
+          if (handleUnauthorizedIfNeeded(v1Error, epoch)) return
           setV1Status({
             title: "Unavailable",
             detail: "/api/v1 is not mounted; Ask + Explain is disabled",
@@ -218,7 +248,7 @@ export function InvestigationWorkspace() {
           getHosts(token, signal),
           getRecentLogs(token, 25, signal),
         ])
-        if (generation !== generationRef.current) return
+        if (generation !== generationRef.current || signal.aborted) return
 
         const hostItems = hosts.hosts ?? hosts.items ?? []
         const logItems = tail.logs ?? tail.entries ?? tail.items ?? []
@@ -249,9 +279,9 @@ export function InvestigationWorkspace() {
           body: "Cortex returned version, stats, hosts, and recent log evidence. Ask a question or select a host to explore the graph.",
         })
       } catch (error) {
-        if (generation !== generationRef.current) return
+        if (generation !== generationRef.current || signal.aborted) return
         if (error instanceof DOMException && error.name === "AbortError") return
-        if (handleUnauthorizedIfNeeded(error)) return
+        if (handleUnauthorizedIfNeeded(error, epoch)) return
         setLogStatus({ label: "Error", tone: "error" })
         setStatusCard({
           tone: "error",
@@ -264,11 +294,20 @@ export function InvestigationWorkspace() {
     [beginRequest, handleUnauthorizedIfNeeded, resetEvidenceInspector],
   )
 
+  useEffect(
+    () => () => {
+      abortRef.current?.abort()
+      detachSignalRef.current?.()
+    },
+    [],
+  )
+
   const runAsk = useCallback(
     async (queryText: string, overrideHost?: string) => {
       const trimmed = queryText.trim()
       if (!trimmed) return
-      if (!bearerToken) {
+      const token = session.getToken()
+      if (!token || snapshot.status !== "connected") {
         setStatusCard({
           tone: "warn",
           badge: "Token required",
@@ -278,12 +317,13 @@ export function InvestigationWorkspace() {
         return
       }
 
-      const { generation, signal } = beginRequest()
+      const epoch = snapshot.epoch
+      const { generation, signal } = beginRequest(snapshot.signal)
       setAskState("pending")
       resetEvidenceInspector()
       try {
         const envelope = await askInvestigation(
-          bearerToken,
+          token,
           {
             prompt: trimmed,
             host: overrideHost ?? hostHint,
@@ -291,7 +331,7 @@ export function InvestigationWorkspace() {
           },
           signal,
         )
-        if (generation !== generationRef.current) return
+        if (generation !== generationRef.current || signal.aborted) return
 
         resetEvidenceInspector()
         const { result, metadata: envMeta } = envelope
@@ -326,9 +366,9 @@ export function InvestigationWorkspace() {
         }
         setAskState("complete")
       } catch (error) {
-        if (generation !== generationRef.current) return
+        if (generation !== generationRef.current || signal.aborted) return
         if (error instanceof DOMException && error.name === "AbortError") return
-        if (handleUnauthorizedIfNeeded(error)) return
+        if (handleUnauthorizedIfNeeded(error, epoch)) return
         setAskState("failed")
         setClaims([])
         setActiveClaimIndex(null)
@@ -341,22 +381,37 @@ export function InvestigationWorkspace() {
       }
     },
     [
-      bearerToken,
       beginRequest,
       handleUnauthorizedIfNeeded,
       hostHint,
       resetEvidenceInspector,
+      session,
       sinceHint,
+      snapshot,
     ],
   )
 
   const handleTokenSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    const nextToken = tokenInput.trim()
-    setBearerToken(nextToken)
-    setTokenInput("")
+    const form = event.currentTarget
+    const raw = new FormData(form).get("token")
+    const nextToken = typeof raw === "string" ? raw.trim() : ""
+    // Empty the input immediately so the secret never remains in the DOM.
+    form.reset()
     resetSessionData()
-    void refreshWithToken(nextToken)
+    if (!nextToken) {
+      session.clear()
+      setStatusCard({
+        tone: "warn",
+        badge: "Token required",
+        title: "Bearer token required",
+        body: "Enter CORTEX_API_TOKEN to load live API data.",
+      })
+      return
+    }
+    session.connect(nextToken)
+    const next = session.getSnapshot()
+    void refreshWithToken(nextToken, next.epoch, next.signal)
   }
 
   const handleAskSubmit = (event: FormEvent<HTMLFormElement>) => {
@@ -366,7 +421,8 @@ export function InvestigationWorkspace() {
 
   const handleExpandNode = useCallback(
     async (node: GraphNodeData) => {
-      if (!bearerToken) return
+      const token = session.getToken()
+      if (!token || snapshot.status !== "connected") return
       const query = node.entity_id
         ? { entity_id: node.entity_id }
         : node.entity_type && node.entity_key
@@ -376,9 +432,10 @@ export function InvestigationWorkspace() {
 
       setIsGraphBusy(true)
       setProofError(null)
+      const epoch = snapshot.epoch
       const generation = generationRef.current
       try {
-        const envelope = await getGraphAround(bearerToken, query)
+        const envelope = await getGraphAround(token, query)
         if (generation !== generationRef.current) return
         setMetadata(envelope.metadata)
         setActiveAppGraph((prev) => {
@@ -388,19 +445,20 @@ export function InvestigationWorkspace() {
         })
       } catch (error) {
         if (generation !== generationRef.current) return
-        if (!handleUnauthorizedIfNeeded(error)) {
+        if (!handleUnauthorizedIfNeeded(error, epoch)) {
           setProofError(error instanceof Error ? error.message : String(error))
         }
       } finally {
         if (generation === generationRef.current) setIsGraphBusy(false)
       }
     },
-    [bearerToken, handleUnauthorizedIfNeeded],
+    [handleUnauthorizedIfNeeded, session, snapshot],
   )
 
   const handleExplainNode = useCallback(
     async (node: GraphNodeData) => {
-      if (!bearerToken) return
+      const token = session.getToken()
+      if (!token || snapshot.status !== "connected") return
       const query = node.entity_id
         ? { entity_id: node.entity_id }
         : node.entity_type && node.entity_key
@@ -410,33 +468,36 @@ export function InvestigationWorkspace() {
 
       setIsGraphBusy(true)
       setProofError(null)
+      const epoch = snapshot.epoch
       const generation = generationRef.current
       try {
-        const envelope = await explainGraphEntity(bearerToken, query)
+        const envelope = await explainGraphEntity(token, query)
         if (generation !== generationRef.current) return
         setMetadata(envelope.metadata)
         setActiveAppGraph(envelope.result)
         setGraphElements(graphFromInvestigation(envelope.result))
       } catch (error) {
         if (generation !== generationRef.current) return
-        if (!handleUnauthorizedIfNeeded(error)) {
+        if (!handleUnauthorizedIfNeeded(error, epoch)) {
           setProofError(error instanceof Error ? error.message : String(error))
         }
       } finally {
         if (generation === generationRef.current) setIsGraphBusy(false)
       }
     },
-    [bearerToken, handleUnauthorizedIfNeeded],
+    [handleUnauthorizedIfNeeded, session, snapshot],
   )
 
   const handleSelectCandidate = useCallback(
     async (candidate: AppEntitySummary) => {
-      if (!bearerToken) return
+      const token = session.getToken()
+      if (!token || snapshot.status !== "connected") return
       setIsGraphBusy(true)
       setProofError(null)
+      const epoch = snapshot.epoch
       const generation = generationRef.current
       try {
-        const envelope = await explainGraphEntity(bearerToken, { entity_id: candidate.id })
+        const envelope = await explainGraphEntity(token, { entity_id: candidate.id })
         if (generation !== generationRef.current) return
         setMetadata(envelope.metadata)
         setActiveAppGraph(envelope.result)
@@ -456,36 +517,38 @@ export function InvestigationWorkspace() {
         })
       } catch (error) {
         if (generation !== generationRef.current) return
-        if (!handleUnauthorizedIfNeeded(error)) {
+        if (!handleUnauthorizedIfNeeded(error, epoch)) {
           setProofError(error instanceof Error ? error.message : String(error))
         }
       } finally {
         if (generation === generationRef.current) setIsGraphBusy(false)
       }
     },
-    [bearerToken, handleUnauthorizedIfNeeded],
+    [handleUnauthorizedIfNeeded, session, snapshot],
   )
 
   const handleInspectEvidence = useCallback(
     async (evidenceId: number) => {
-      if (!bearerToken) return
+      const token = session.getToken()
+      if (!token || snapshot.status !== "connected") return
       setProofLoadingId(evidenceId)
       setProofError(null)
+      const epoch = snapshot.epoch
       const generation = generationRef.current
       try {
-        const envelope = await getGraphEvidence(bearerToken, evidenceId)
+        const envelope = await getGraphEvidence(token, evidenceId)
         if (generation !== generationRef.current) return
         setSelectedProof(envelope.result)
       } catch (error) {
         if (generation !== generationRef.current) return
-        if (!handleUnauthorizedIfNeeded(error)) {
+        if (!handleUnauthorizedIfNeeded(error, epoch)) {
           setProofError(error instanceof Error ? error.message : String(error))
         }
       } finally {
         if (generation === generationRef.current) setProofLoadingId(null)
       }
     },
-    [bearerToken, handleUnauthorizedIfNeeded],
+    [handleUnauthorizedIfNeeded, session, snapshot],
   )
 
   const knownHostNames = useMemo(
@@ -519,95 +582,110 @@ export function InvestigationWorkspace() {
 
   const selectedNode = selection.kind === "node" ? selection.node : null
   const canDrillDown = Boolean(
-    bearerToken && selectedNode && (selectedNode.entity_id || selectedNode.entity_key),
+    connected && selectedNode && (selectedNode.entity_id || selectedNode.entity_key),
   )
 
   return (
     <div className="grid gap-3.5">
-      <header className="aurora-surface flex flex-col gap-4 p-4 lg:flex-row lg:items-center lg:justify-between">
-        <div>
-          <h1 className="m-0 text-2xl font-extrabold tracking-tight">
-            Cortex investigation workspace
-          </h1>
-          <p className="mt-1 mb-0 text-[13px] text-[var(--aurora-text-muted)]">
-            Graph, evidence, timeline, and log context for the homelab fleet.
-          </p>
-        </div>
+      <Card>
+        <CardContent className="flex flex-col gap-4 p-4 lg:flex-row lg:items-center lg:justify-between">
+          <header>
+            <h1 className="m-0 text-2xl font-extrabold tracking-tight">
+              Cortex investigation workspace
+            </h1>
+            <p className="mt-1 mb-0 text-[13px] text-[var(--aurora-text-muted)]">
+              Graph, evidence, timeline, and log context for the homelab fleet.
+            </p>
+          </header>
 
-        <form className="grid gap-1.5 w-full lg:w-[min(440px,42vw)]" data-token-form onSubmit={handleTokenSubmit}>
-          <label className="aurora-meta-label" htmlFor="api-token">
-            Bearer token {bearerToken ? "(connected in memory)" : ""}
-          </label>
-          <div className="flex flex-col gap-2 sm:flex-row">
-            <input
-              id="api-token"
-              name="token"
-              type="password"
-              autoComplete="off"
-              className="aurora-input"
-              placeholder={bearerToken ? "Token stored in memory" : "CORTEX_API_TOKEN"}
-              value={tokenInput}
-              onChange={(event) => setTokenInput(event.target.value)}
-            />
-            <button type="submit" className="aurora-btn-primary">
-              Connect
-            </button>
-            <button
-              type="button"
-              className="aurora-btn-secondary"
-              data-clear-token
-              onClick={() =>
-                clearSessionState({
-                  tone: "warn",
-                  badge: "Disconnected",
-                  title: "Bearer token cleared",
-                  body: "The token was removed from memory.",
-                })
-              }
-            >
-              Clear
-            </button>
-          </div>
-        </form>
-      </header>
+          <form
+            ref={tokenFormRef}
+            className="grid gap-1.5 w-full lg:w-[min(440px,42vw)]"
+            data-token-form
+            onSubmit={handleTokenSubmit}
+          >
+            <label className="aurora-meta-label" htmlFor="api-token">
+              Bearer token {connected ? "(connected in memory)" : ""}
+            </label>
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+              <Input
+                id="api-token"
+                name="token"
+                type="password"
+                autoComplete="off"
+                placeholder={connected ? "Token stored in memory" : "CORTEX_API_TOKEN"}
+              />
+              <Button type="submit" variant="aurora">
+                Connect
+              </Button>
+              <Button
+                type="button"
+                variant="neutral"
+                data-clear-token
+                onClick={() =>
+                  clearSessionState({
+                    tone: "warn",
+                    badge: "Disconnected",
+                    title: "Bearer token cleared",
+                    body: "The token was removed from memory.",
+                  })
+                }
+              >
+                Clear
+              </Button>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
 
       <section
         className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4"
         aria-label="Runtime status"
       >
-        <article className="aurora-surface p-3.5 grid gap-1.5 content-start min-h-[92px]">
-          <span className="aurora-meta-label">Server</span>
-          <strong className="text-2xl font-extrabold leading-none" data-server-version>
-            {serverVersion}
-          </strong>
-          <small className="text-xs text-[var(--aurora-text-muted)]" data-schema-version>
-            {schemaVersion}
-          </small>
-        </article>
-        <article className="aurora-surface p-3.5 grid gap-1.5 content-start min-h-[92px]">
-          <span className="aurora-meta-label">Fleet</span>
-          <strong className="text-2xl font-extrabold leading-none" data-host-count>
-            {hostCount}
-          </strong>
-          <small className="text-xs text-[var(--aurora-text-muted)]">Known hosts</small>
-        </article>
-        <article className="aurora-surface p-3.5 grid gap-1.5 content-start min-h-[92px]">
-          <span className="aurora-meta-label">Ingest</span>
-          <strong className="text-2xl font-extrabold leading-none" data-log-count>
-            {logCount}
-          </strong>
-          <small className="text-xs text-[var(--aurora-text-muted)]">Total rows</small>
-        </article>
-        <article
-          className={`aurora-surface p-3.5 grid gap-1.5 content-start min-h-[92px] ${
-            v1Status.tone === "warn" ? "!border-[color-mix(in_srgb,var(--aurora-warn)_50%,var(--aurora-border-strong))]" : ""
-          }`}
+        <Card elevated={false}>
+          <CardContent className="p-3.5 grid gap-1.5 content-start min-h-[92px]">
+            <span className="aurora-meta-label">Server</span>
+            <strong className="text-2xl font-extrabold leading-none" data-server-version>
+              {serverVersion}
+            </strong>
+            <small className="text-xs text-[var(--aurora-text-muted)]" data-schema-version>
+              {schemaVersion}
+            </small>
+          </CardContent>
+        </Card>
+        <Card elevated={false}>
+          <CardContent className="p-3.5 grid gap-1.5 content-start min-h-[92px]">
+            <span className="aurora-meta-label">Fleet</span>
+            <strong className="text-2xl font-extrabold leading-none" data-host-count>
+              {hostCount}
+            </strong>
+            <small className="text-xs text-[var(--aurora-text-muted)]">Known hosts</small>
+          </CardContent>
+        </Card>
+        <Card elevated={false}>
+          <CardContent className="p-3.5 grid gap-1.5 content-start min-h-[92px]">
+            <span className="aurora-meta-label">Ingest</span>
+            <strong className="text-2xl font-extrabold leading-none" data-log-count>
+              {logCount}
+            </strong>
+            <small className="text-xs text-[var(--aurora-text-muted)]">Total rows</small>
+          </CardContent>
+        </Card>
+        <Card
+          elevated={false}
+          className={
+            v1Status.tone === "warn"
+              ? "!border-[color-mix(in_srgb,var(--aurora-warn)_50%,var(--aurora-border-strong))]"
+              : undefined
+          }
           data-v1-state
         >
-          <span className="aurora-meta-label">Investigation API</span>
-          <strong className="text-2xl font-extrabold leading-none">{v1Status.title}</strong>
-          <small className="text-xs text-[var(--aurora-text-muted)]">{v1Status.detail}</small>
-        </article>
+          <CardContent className="p-3.5 grid gap-1.5 content-start min-h-[92px]">
+            <span className="aurora-meta-label">Investigation API</span>
+            <strong className="text-2xl font-extrabold leading-none">{v1Status.title}</strong>
+            <small className="text-xs text-[var(--aurora-text-muted)]">{v1Status.detail}</small>
+          </CardContent>
+        </Card>
       </section>
 
       {metadata &&
@@ -617,38 +695,46 @@ export function InvestigationWorkspace() {
           metadata.version_skew) && (
           <section className="grid gap-2" aria-label="Investigation diagnostics">
             {metadata.degraded_reasons.length > 0 && (
-              <div className="aurora-banner aurora-banner-error">
-                <span>
-                  <strong>Graph projection degraded:</strong> {metadata.degraded_reasons.join("; ")}
-                </span>
-                {metadata.graph_projection_status && (
-                  <span className="aurora-badge aurora-badge-error">
-                    {metadata.graph_projection_status}
+              <Banner variant="error" kind="tag">
+                <span className="flex flex-wrap items-center justify-between gap-2">
+                  <span>
+                    <strong className="text-[var(--aurora-text-primary)]">
+                      Graph projection degraded:
+                    </strong>{" "}
+                    {metadata.degraded_reasons.join("; ")}
                   </span>
-                )}
-              </div>
+                  {metadata.graph_projection_status && (
+                    <Badge tone="error">{metadata.graph_projection_status}</Badge>
+                  )}
+                </span>
+              </Banner>
             )}
             {(metadata.truncated || metadata.partial) && (
-              <div className="aurora-banner aurora-banner-warn">
-                <span>
-                  <strong>Partial or truncated result:</strong>{" "}
-                  {[...metadata.truncation_reasons, ...metadata.partial_reasons]
-                    .filter(Boolean)
-                    .join(", ") || "bounded by server budget"}
+              <Banner variant="warn" kind="tag">
+                <span className="flex flex-wrap items-center justify-between gap-2">
+                  <span>
+                    <strong className="text-[var(--aurora-text-primary)]">
+                      Partial or truncated result:
+                    </strong>{" "}
+                    {[...metadata.truncation_reasons, ...metadata.partial_reasons]
+                      .filter(Boolean)
+                      .join(", ") || "bounded by server budget"}
+                  </span>
+                  <span className="aurora-mono text-xs text-[var(--aurora-text-muted)]">
+                    {metadata.budget_used.graph_calls}/{metadata.budget.max_graph_calls} graph ·{" "}
+                    {metadata.budget_used.log_rows}/{metadata.budget.max_log_rows} logs ·{" "}
+                    {metadata.budget_used.wall_time_ms}ms
+                  </span>
                 </span>
-                <span className="aurora-mono text-xs text-[var(--aurora-text-muted)]">
-                  {metadata.budget_used.graph_calls}/{metadata.budget.max_graph_calls} graph ·{" "}
-                  {metadata.budget_used.log_rows}/{metadata.budget.max_log_rows} logs ·{" "}
-                  {metadata.budget_used.wall_time_ms}ms
-                </span>
-              </div>
+              </Banner>
             )}
             {metadata.version_skew && (
-              <div className="aurora-banner aurora-banner-warn">
-                <span>
-                  <strong>Client/server version skew:</strong> {metadata.version_skew}
-                </span>
-              </div>
+              <Banner variant="warn" kind="tag">
+                <strong className="text-[var(--aurora-text-primary)]">
+                  Client/server version skew:
+                </strong>{" "}
+                {metadata.version_skew}
+              </Banner>
             )}
           </section>
         )}
@@ -718,7 +804,8 @@ export function InvestigationWorkspace() {
             setSelectedProof(null)
           }}
           onRefresh={() => {
-            void refreshWithToken(bearerToken)
+            const token = session.getToken() ?? ""
+            void refreshWithToken(token, snapshot.epoch, snapshot.signal)
           }}
         />
 
@@ -731,7 +818,7 @@ export function InvestigationWorkspace() {
           selectedProof={selectedProof}
           proofLoadingId={proofLoadingId}
           proofError={proofError}
-          connected={Boolean(bearerToken)}
+          connected={connected}
           isBusy={isGraphBusy}
           onInspectEvidence={(evidenceId) => {
             void handleInspectEvidence(evidenceId)
@@ -755,7 +842,7 @@ export function InvestigationWorkspace() {
         logs={latestLogs}
         statusLabel={logStatus.label}
         statusTone={logStatus.tone}
-        connected={Boolean(bearerToken)}
+        connected={connected}
         onPivotHost={(hostname) => {
           const nextPrompt = `Why did ${hostname} log recent errors?`
           setHostHint(hostname)
@@ -764,5 +851,13 @@ export function InvestigationWorkspace() {
         }}
       />
     </div>
+  )
+}
+
+export function InvestigationWorkspace() {
+  return (
+    <AuthProvider>
+      <InvestigationWorkspaceInner />
+    </AuthProvider>
   )
 }

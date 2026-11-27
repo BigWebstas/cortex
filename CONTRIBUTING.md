@@ -43,7 +43,7 @@ pnpm --dir web test
 pnpm --dir web build
 ```
 
-`pnpm --dir web test:e2e` uses `web/playwright.config.ts`; review its service requirements before running it. The production router in `src/web_app.rs` serves the Next export from `web/out/` when `build.rs` bundles it, and otherwise the authored `web/app/index.html`, `app.js`, and `app.css`. Playwright starts an isolated Rust router harness and exercises the actual served workspace with intercepted API fixtures. That verifies browser behavior and asset wiring, not live API delivery. Do not hand-edit generated exports.
+`pnpm --dir web test:e2e` uses `web/playwright.config.ts`; review its service requirements before running it. The production router in `src/web_app.rs` serves the Next export from `web/out/` when `build.rs` bundles it, and returns `503 Service Unavailable` for `/app` routes when built without a bundle. Playwright starts an isolated Rust router harness and exercises the actual served workspace with intercepted API fixtures. That verifies browser behavior and asset wiring, not live API delivery. Do not hand-edit generated exports.
 
 ## Change the right layer
 
