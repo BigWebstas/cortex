@@ -729,3 +729,10 @@ RED: not recorded as a separate run
 GREEN: added run tabs, a transcript view with recorded speakers, run-scoped search and tool-message folding, and a command list with filters and a detail sheet. Copy run key now offers the key for manual copying when the clipboard is unavailable
 PROOF: lint, typecheck, 111 unit tests, the Aurora audit, the build, the web app Rust tests and 48 browser tests passed
 NOTES: no jump to match, timestamp toggle or plan and task renderers. Command filters apply only to loaded commands and the page says so. Lists use a plain list rather than the Aurora data table and fetch payloads with each page. Not tried against real data
+
+## AO-091 to AO-094 Git, activity, telemetry, evidence and overview views (partial)
+commit/worktree SHA: `feat/observatory-views` (pre-commit proof)
+RED: not recorded as a separate run; the first real-server browser run found the run view widening the page once seven tabs existed
+GREEN: added Git, Activity, Telemetry and Evidence tabs and a repository overview. Telemetry `_unix_nano` fields are now decimal strings
+PROOF: lint, typecheck, 123 unit tests, the Aurora audit, the build, 58 desktop and mobile browser tests including a no-horizontal-overflow check, and 179 targeted Rust tests passed. The full Rust suite was not run on this change
+NOTES: only the latest related commit is available, because there is no route listing a run's commits. Telemetry shows spans and a metric table, without charts, span detail, or aggregate summaries. Evidence omits event-level provenance. The overview has no activity chart, recent commits or observer health. Aurora commit, branch, tool-call and chart components are not used. Not tried against real data. The telemetry response still differs from the OpenAPI object

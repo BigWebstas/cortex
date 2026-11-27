@@ -275,6 +275,8 @@ Default limit 100, maximum 500. Payload inclusion obeys content/privacy configur
 
 ### 7.8 GET /api/agent-runs/{run_key}/telemetry
 
+The current response is a two-element array, a span page then a metric page, each with `items` and `pagination`. Fields ending in `_unix_nano` are decimal strings. This differs from the OpenAPI `Telemetry` object, which is not yet implemented.
+
 Query:
 
 - `signal=spans|metrics|all`

@@ -27,12 +27,15 @@ def fetch(url: str, headers: dict[str, str] | None = None) -> tuple[int, bytes, 
 def main() -> int:
     output = Path(os.environ["LIVE_RUN_ROOT"]) / "artifacts" / "browser-sweep.json"
     base = f"http://127.0.0.1:{os.environ['LIVE_HTTP_PORT']}"
-    status, html, headers = fetch(base + "/app")
+    status, html, headers = fetch(base + "/app/investigate/")
     assets = sorted(set(re.findall(rb'(?:src|href)=["\']([^"\']+)["\']', html)))
     local_assets = [item.decode() for item in assets if item.startswith((b"/app/", b"/assets/"))]
     asset_observations = []
+    scripts = []
     for path in local_assets[:20]:
         asset_status, body, asset_headers = fetch(base + path)
+        if path.endswith(".js"):
+            scripts.append(body)
         asset_observations.append({"path": path, "status": asset_status, "bytes": len(body),
                                    "sha256": hashlib.sha256(body).hexdigest(),
                                    "content_type": asset_headers.get("content-type", "").split(";", 1)[0]})
@@ -41,11 +44,12 @@ def main() -> int:
     denied_status, denied, _ = fetch(base + "/api/search?query=cortex-live")
     cross_status, _, cross_headers = fetch(base + "/app", {"Origin": "https://outside.invalid"})
     csp = headers.get("content-security-policy", "")
-    app_js = next((item for item in asset_observations if item["path"].endswith("app.js")), None)
-    _, app_js_body, _ = fetch(base + "/app/assets/app.js")
+    # Every script the investigation page loads, so neither storage APIs nor a
+    # credential can be baked into the shipped bundle.
+    bundle = b"\n".join(scripts)
     forbidden = [term for term in (b"localStorage", b"sessionStorage", os.environ["LIVE_API_TOKEN"].encode(),
                                    os.environ["LIVE_CORTEX_TOKEN"].encode(), os.environ["LIVE_ADMIN_TOKEN"].encode())
-                 if term in app_js_body]
+                 if term in bundle]
     playwright_candidates = [
         os.environ.get("LIVE_PLAYWRIGHT_CORE", ""),
         str(Path.home() / ".cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright-core"),
@@ -84,7 +88,7 @@ def main() -> int:
         "security": {"csp_present": bool(csp), "csp": csp, "cross_origin_status": cross_status,
                      "allow_origin": cross_headers.get("access-control-allow-origin")},
         "client_storage_policy": {"forbidden_bundle_matches": [item.decode("utf-8", "replace") for item in forbidden],
-                                  "static_bundle_sha256": hashlib.sha256(app_js_body).hexdigest()},
+                                  "static_bundle_sha256": hashlib.sha256(bundle).hexdigest()},
         "real_browser": browser_result,
     }
     failures = []
@@ -95,6 +99,7 @@ def main() -> int:
     if not csp: failures.append("csp-missing")
     if cross_headers.get("access-control-allow-origin") == "https://outside.invalid": failures.append("cross-origin")
     if forbidden: failures.append("forbidden-client-storage-or-credential")
+    if not scripts: failures.append("bundle-missing")
     if "launch_error" in browser_result: failures.append("real-browser-launch")
     else:
         if not browser_result.get("connected") or not browser_result.get("rendered") or not browser_result.get("successfulQuery"): failures.append("browser-rendered-query")

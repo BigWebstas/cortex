@@ -151,9 +151,8 @@ export type TelemetryQuery = {
 }
 
 /**
- * Telemetry as the server sends it today: a span page and a metric page. The
- * published contract describes a single object, and nanosecond timestamps
- * exceed double precision, so treat those fields as approximate.
+ * Telemetry is a span page and a metric page. Nanosecond timestamps are decimal
+ * strings because they exceed double precision.
  */
 export interface TelemetrySpanRow {
   id: string
@@ -162,8 +161,8 @@ export interface TelemetrySpanRow {
   parent_span_id: string | null
   name: string
   kind: number
-  start_time_unix_nano: number
-  end_time_unix_nano: number
+  start_time_unix_nano: string
+  end_time_unix_nano: string
   duration_nano: number
   status_code: number
   status_message: string | null
@@ -178,7 +177,8 @@ export interface TelemetryMetricRow {
   description: string
   unit: string
   instrument_kind: string
-  time_unix_nano: number
+  start_time_unix_nano: string | null
+  time_unix_nano: string
   value_json: string
   attributes_json: string
 }
