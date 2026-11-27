@@ -4,11 +4,29 @@ import { expect, test, type Page } from "@playwright/test"
 const TOKEN = "observatory-fixture-token"
 
 async function mock(page: Page, status = 200) {
+  await page.route("**/api/agent-runs?*", (route) =>
+    route.fulfill({
+      json: {
+        runs: [],
+        pagination: { limit: 100, next_cursor: null, truncated: false },
+        as_of: "2026-01-01T00:00:00Z",
+        stream_cursor: "0",
+      },
+    }),
+  )
   await page.route("**/api/repositories?*", async (route) => {
     expect(route.request().headers().authorization).toBe(`Bearer ${TOKEN}`)
     await route.fulfill({
       status,
-      json: status === 200 ? { repositories: [] } : { error: "unauthorized" },
+      json:
+        status === 200
+          ? {
+              repositories: [],
+              pagination: { limit: 1, next_cursor: null, truncated: false },
+              as_of: "2026-01-01T00:00:00Z",
+              stream_cursor: "0",
+            }
+          : { error: "unauthorized" },
     })
   })
 }

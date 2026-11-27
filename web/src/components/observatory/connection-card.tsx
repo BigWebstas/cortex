@@ -49,15 +49,13 @@ export function ConnectionCard() {
       {snapshot.status === "unauthorized" && (
         <Banner
           variant="error"
-          title="Token rejected"
-          description="The token was cleared from memory. Enter a valid CORTEX_API_TOKEN to reconnect."
+          description="Token rejected. The token was cleared from memory. Enter a valid CORTEX_API_TOKEN to reconnect."
         />
       )}
       {current?.failed && (
         <Banner
           variant="warn"
-          title="Cortex is unavailable"
-          description="The server did not answer. Clear the token and connect again."
+          description="Cortex is unavailable. The server did not answer. Clear the token and connect again."
         />
       )}
       <Card>

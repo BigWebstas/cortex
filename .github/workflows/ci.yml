@@ -271,11 +271,14 @@ jobs:
       - name: Install browser
         run: pnpm --dir web exec playwright install --with-deps chromium
 
+      # A different build environment here would recompile the crate and
+      # exceed the server start-up timeout.
       - name: Run browser tests
         env:
           CARGO_PROFILE_DEV_DEBUG: "0"
           CARGO_PROFILE_TEST_DEBUG: "0"
           CARGO_BUILD_JOBS: "4"
+          CORTEX_REQUIRE_WEB_BUNDLE: "1"
         run: pnpm --dir web test:e2e
 
       - name: Upload browser traces

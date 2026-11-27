@@ -1,8 +1,7 @@
 import type { Metadata } from "next"
 
-import { ConnectionCard } from "../../src/components/observatory/connection-card"
+import { Observatory } from "../../src/components/observatory/observatory"
 import { WorkspaceShell } from "../../src/components/workspace-shell"
-import { AuthProvider } from "../../src/lib/observatory/auth-context"
 
 export const metadata: Metadata = { title: "Agent Observatory" }
 
@@ -17,9 +16,7 @@ export default function AgentObservatoryPage() {
           attributed commits.
         </p>
       </header>
-      <AuthProvider>
-        <ConnectionCard />
-      </AuthProvider>
+      <Observatory />
     </WorkspaceShell>
   )
 }

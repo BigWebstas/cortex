@@ -715,3 +715,10 @@ RED: not recorded as a separate run; tests were written before the modules. The 
 GREEN: memory-only session and React context with an Aurora connection card; typed, bounded API client; fetch-based stream client with `Last-Event-ID`, backoff and reset results; pure snapshot and stream reducer; URL codec
 PROOF: 86 unit tests and 32 browser tests passed, including token absence from storage, URL, DOM and console after connect, clear and reload
 NOTES: modules live in `web/src/lib/observatory/` to match the existing layout, not `web/lib/`. Responses are checked only for being JSON objects. Telemetry is typed as the two-page array the server returns, which still differs from the contract, and its nanosecond fields lose precision in JavaScript. The stream client, reducer and URL codec are not connected to a page yet. The worktree schema gained `lock_reason` and `prune_reason`, and the contract test now compares repository and worktree fields
+
+## AO-084 to AO-088 Observatory read-only screens (partial)
+commit/worktree SHA: `feat/observatory-ui` (pre-commit proof)
+RED: not recorded as a separate run; first browser runs failed on heading order and on holding the timeline position after loading older events
+GREEN: repository and worktree navigator with a mobile sheet; filtered, virtualized, cursor-paged run list; run header with worktree attribution and evidence; virtualized timeline with older pages, manual refresh and return to the newest events
+PROOF: lint, typecheck, 100 unit tests, the Aurora audit, the build, the web app Rust tests and 40 desktop and mobile browser tests passed, including 5,000-run and 10,000-event bounds, inert markup, and axe checks
+NOTES: not implemented: command palette, resizable panels, Aurora sidebar and data table, sort options, host, branch and time-range controls, and most keyboard shortcuts. Updates are manual until AO-095. Relative times are computed when a row mounts. Not tried against real data. The CI browser step now uses the same build environment as the bundle test
