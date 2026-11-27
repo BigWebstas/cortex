@@ -701,3 +701,10 @@ commit/worktree SHA: `fix/web-workspace-evidence` (pre-commit proof)
 GREEN: run, event and error definitions now describe the shapes the server returns
 PROOF: `scripts/check-agent-observatory-contracts.sh` passed, and an API test compares returned fields with the schema for run detail, run, actor, evidence and event
 NOTES: worktree and telemetry definitions were not compared
+
+## AO-071 usage mapping and AO-072 styles and font proof
+commit/worktree SHA: `feat/observatory-ui` (pre-commit proof)
+RED: not observed separately; before this change the audit accepted a lock with no planned use for a top-level item; the styles were not imported
+GREEN: `web/aurora.lock.json` records a planned use for all top-level items and the audit requires it; `app/globals.css` imports the vendored tokens, fonts, theme and component layers
+PROOF: unit and browser tests pass; the browser test confirms Inter loads from `/app/fonts/aurora/` with no off-origin request. Before and after screenshots showed no layout change on the investigation page
+NOTES: the investigation page keeps its earlier palette through `.cortex-legacy-theme` until AO-096; other routes use Aurora tokens. The local `.aurora-card` class was renamed `.cortex-card` to avoid the Aurora class

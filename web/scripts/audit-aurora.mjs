@@ -28,6 +28,7 @@ export function auditLock(lock, root) {
   }
   for (const name of lock.top_level_items ?? []) {
     if (!resolved.has(name)) problems.push(`unresolved top-level item: ${name}`)
+    if (!lock.usage?.[name]) problems.push(`no planned use recorded: ${name}`)
   }
 
   const files = lock.files ?? []

@@ -144,7 +144,7 @@ export function AskPanel({
 
       <div className="grid gap-2.5" data-answer-stack data-ask-state={askState} aria-live="polite">
         {statusMessage && claims.length === 0 && (
-          <article className="aurora-card grid gap-1.5">
+          <article className="cortex-card grid gap-1.5">
             <span className={`aurora-badge ${statusBadgeTone(statusMessage.tone)}`}>
               {statusMessage.badge}
             </span>
@@ -161,8 +161,8 @@ export function AskPanel({
                 <button
                   key={`${claim.title}-${index}`}
                   type="button"
-                  className={`aurora-card aurora-card-interactive grid gap-1.5 ${
-                    selected ? "aurora-card-selected" : ""
+                  className={`cortex-card cortex-card-interactive grid gap-1.5 ${
+                    selected ? "cortex-card-selected" : ""
                   }`}
                   onClick={() => onSelectClaim(claim, index)}
                 >
@@ -217,7 +217,7 @@ export function AskPanel({
         )}
 
         {openQuestions.length > 0 && (
-          <div className="aurora-card grid gap-1.5">
+          <div className="cortex-card grid gap-1.5">
             <span className="aurora-meta-label">Open questions</span>
             <ul className="m-0 pl-4 grid gap-1 text-[13px] text-[var(--aurora-warn)]">
               {openQuestions.map((question, index) => (

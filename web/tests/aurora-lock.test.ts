@@ -56,6 +56,7 @@ describe("Aurora lock audit", () => {
 
   const validLock = () => ({
     schema: 1,
+    usage: { "aurora-button": "Connect and retry actions (AO-079)", "aurora-tabs": "Run workspace (AO-084)" },
     registry: { source_revision: SHA, immutable_url_template: TEMPLATE },
     top_level_items: ["aurora-button"],
     resolved_items: [
@@ -81,6 +82,11 @@ describe("Aurora lock audit", () => {
 
   it("accepts a complete, untouched install", () => {
     expect(auditLock(validLock(), root)).toEqual([])
+  })
+
+  it("requires a planned use for every top-level item", () => {
+    const lock = { ...validLock(), usage: {} }
+    expect(auditLock(lock, root)).toEqual(["no planned use recorded: aurora-button"])
   })
 
   it("rejects an altered file", () => {

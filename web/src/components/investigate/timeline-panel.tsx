@@ -140,7 +140,7 @@ export function TimelinePanel({
             return (
               <article
                 key={row.id ?? `${row.timestamp ?? row.received_at}-${index}`}
-                className="aurora-card grid grid-cols-1 gap-2 sm:grid-cols-[84px_84px_130px_minmax(0,1fr)] items-start"
+                className="cortex-card grid grid-cols-1 gap-2 sm:grid-cols-[84px_84px_130px_minmax(0,1fr)] items-start"
               >
                 <time className="aurora-mono text-[var(--aurora-text-muted)]">
                   {compactTime(row.timestamp || row.received_at)}
