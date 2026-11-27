@@ -313,7 +313,10 @@ fn llama_cpp_error_lines_keep_their_error_level() {
         infer_docker_severity("srv    send_error: task id = 0, error: out of memory"),
         Some("err")
     );
-    assert_eq!(infer_docker_severity("ggml_cuda_init: failed to initialize CUDA"), None);
+    assert_eq!(
+        infer_docker_severity("ggml_cuda_init: failed to initialize CUDA"),
+        None
+    );
 }
 
 #[test]

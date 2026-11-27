@@ -7,8 +7,16 @@ import { fileURLToPath, pathToFileURL } from "node:url"
 
 const FULL_SHA = /^[0-9a-f]{40}$/
 const SHA256 = /^[0-9a-f]{64}$/
-const MUTABLE_URL =
-  /aurora\.tootie\.tv|fonts\.(googleapis|gstatic)\.com|dinglebear-ai\/aurora\/(main|master|HEAD)\/|shadcn(-ui)?@latest/
+// The public design-system registry, which serves whatever is newest.
+const MUTABLE_REGISTRY_HOST = "aurora.tootie.tv"
+const MUTABLE_URL = new RegExp(
+  [
+    MUTABLE_REGISTRY_HOST.replaceAll(".", "\\."),
+    "fonts\\.(googleapis|gstatic)\\.com",
+    "dinglebear-ai/aurora/(main|master|HEAD)/",
+    "shadcn(-ui)?@latest",
+  ].join("|"),
+)
 
 /** @returns {string[]} one message per problem; empty when the lock is satisfied */
 export function auditLock(lock, root) {

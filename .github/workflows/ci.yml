@@ -241,6 +241,8 @@ jobs:
       - name: Install web dependencies
         run: |
           corepack enable
+          # Corepack reads packageManager from the working directory only.
+          (cd web && corepack install --global "$(node -p "require('./package.json').packageManager")")
           pnpm --dir web install --frozen-lockfile
 
       - name: Audit vendored Aurora source
